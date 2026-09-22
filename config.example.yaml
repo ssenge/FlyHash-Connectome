@@ -1,0 +1,34 @@
+# flypath configuration.
+# Copy to config.yaml to override; config.yaml is gitignored and merged over this file.
+
+data:
+  base_url: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome
+  raw_dir: data/raw
+  graph_dir: data/graph
+  cache_dir: data/cache
+  files:
+    weights: connectome-weights-male-cns-v1.0-minconf-0.5.feather
+    annotations: body-annotations-male-cns-v1.0-minconf-0.5.feather
+    neurotransmitters: body-neurotransmitters-male-cns-v1.0.feather
+
+build:
+  # The full connectome: every reconstructed connection, however weak. Kenyon
+  # cell claws are individually small, so a synapse-count cut removes real
+  # connections. Raise this only if you want to reproduce a thresholded study.
+  min_weight: 1
+  status: Traced           # annotation status to keep
+
+# Sign of a connection, from the presynaptic neuron's consensus neurotransmitter.
+# Not used by the hashing experiment, which is restricted to the olfactory
+# projection, but it is a real annotation and cheap to carry.
+signs:
+  acetylcholine: 1
+  gaba: -1
+  glutamate: -1
+  histamine: -1
+  dopamine: 1
+  octopamine: 1
+  serotonin: 1
+  unclear: 1
+
+seed: 0

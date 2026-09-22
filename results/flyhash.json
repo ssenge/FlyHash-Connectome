@@ -1,0 +1,157 @@
+{
+  "dataset": "mixtures",
+  "side": "R",
+  "weighted": false,
+  "n_items": 4000,
+  "n_glomeruli": 35,
+  "n_cells": 1838,
+  "claws_per_cell": 3.868335146898803,
+  "cells_per_glomerulus": [
+    19,
+    473
+  ],
+  "seeds": 40,
+  "neighbours": 10,
+  "rows": [
+    {
+      "hash_size": 8,
+      "real": 0.19654379960317458,
+      "shuffle_kc": {
+        "mean": 0.21023126711309525,
+        "std": 0.0075516978411752705,
+        "nulls_beating_real": 39
+      },
+      "shuffle_both": {
+        "mean": 0.21095846949404762,
+        "std": 0.00904355317126501,
+        "nulls_beating_real": 38
+      },
+      "random_claws": {
+        "mean": 0.24689669246031745,
+        "std": 0.0051201038216371385,
+        "nulls_beating_real": 40
+      },
+      "gaussian_lsh": {
+        "mean": 0.018212862351190476,
+        "std": 0.004148732949175257
+      },
+      "z_vs_strict_null": -1.5939166405390632,
+      "min_detectable_effect": 0.0857377586494121,
+      "sensitivity": {
+        "balanced": {
+          "map": 0.20717575396825397,
+          "z": -0.41827757892711626
+        },
+        "degenerate": {
+          "map": 0.004304087301587302,
+          "z": -22.85101643745879
+        }
+      }
+    },
+    {
+      "hash_size": 16,
+      "real": 0.28824624007936506,
+      "shuffle_kc": {
+        "mean": 0.30145799479166663,
+        "std": 0.005687198623993788,
+        "nulls_beating_real": 39
+      },
+      "shuffle_both": {
+        "mean": 0.2966274253472222,
+        "std": 0.006010694655401489,
+        "nulls_beating_real": 35
+      },
+      "random_claws": {
+        "mean": 0.30648103769841273,
+        "std": 0.003832005108317916,
+        "nulls_beating_real": 40
+      },
+      "gaussian_lsh": {
+        "mean": 0.06623409722222222,
+        "std": 0.012030313716640258
+      },
+      "z_vs_strict_null": -1.3943788109301207,
+      "min_detectable_effect": 0.04052689766204571,
+      "sensitivity": {
+        "balanced": {
+          "map": 0.29633056547619047,
+          "z": -0.049388612797951516
+        },
+        "degenerate": {
+          "map": 0.004333650793650793,
+          "z": -48.628950772316095
+        }
+      }
+    },
+    {
+      "hash_size": 32,
+      "real": 0.35310122023809526,
+      "shuffle_kc": {
+        "mean": 0.36985797817460314,
+        "std": 0.0042850945522282064,
+        "nulls_beating_real": 40
+      },
+      "shuffle_both": {
+        "mean": 0.35934404935515873,
+        "std": 0.004243584788383106,
+        "nulls_beating_real": 37
+      },
+      "random_claws": {
+        "mean": 0.35351235813492066,
+        "std": 0.0033800275685091138,
+        "nulls_beating_real": 19
+      },
+      "gaussian_lsh": {
+        "mean": 0.151429701140873,
+        "std": 0.016029988881104587
+      },
+      "z_vs_strict_null": -1.4711215698298798,
+      "min_detectable_effect": 0.02361850597497412,
+      "sensitivity": {
+        "balanced": {
+          "map": 0.3628863492063492,
+          "z": 0.8347423291865991
+        },
+        "degenerate": {
+          "map": 0.003710634920634921,
+          "z": -83.80495078695542
+        }
+      }
+    },
+    {
+      "hash_size": 64,
+      "real": 0.39603791666666666,
+      "shuffle_kc": {
+        "mean": 0.4137166999007936,
+        "std": 0.004411652347438136,
+        "nulls_beating_real": 40
+      },
+      "shuffle_both": {
+        "mean": 0.4000478025793651,
+        "std": 0.0035955333808677446,
+        "nulls_beating_real": 36
+      },
+      "random_claws": {
+        "mean": 0.38465760143849204,
+        "std": 0.002620370972119206,
+        "nulls_beating_real": 0
+      },
+      "gaussian_lsh": {
+        "mean": 0.24623969667658732,
+        "std": 0.010731162450649326
+      },
+      "z_vs_strict_null": -1.115240907766368,
+      "min_detectable_effect": 0.01797551871393884,
+      "sensitivity": {
+        "balanced": {
+          "map": 0.40581921626984124,
+          "z": 1.6051620378721365
+        },
+        "degenerate": {
+          "map": 0.004612083333333333,
+          "z": -109.97971017046093
+        }
+      }
+    }
+  ]
+}

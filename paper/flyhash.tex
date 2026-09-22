@@ -1,0 +1,430 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdfauthor={},pdfsubject={},pdfkeywords={},pdfcreator={}}
+\graphicspath{{../results/}{./}}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Random Enough: A Connectome Test of the\\Fly Hashing Algorithm}
+
+\author{\IEEEauthorblockN{Sebastian Senge}
+\IEEEauthorblockA{\textit{Independent Researcher}}}
+
+\maketitle
+
+\begin{abstract}
+The \textit{Drosophila} olfactory circuit has been characterised as a
+locality-sensitive hash: a sparse expansion from ${\sim}50$ glomeruli onto
+${\sim}2000$ Kenyon cells followed by winner-take-all sparsification, which
+outperforms classical locality-sensitive hashing (LSH) at similarity search.
+That result was obtained with a \emph{randomly generated} projection matrix,
+because no connectome of the circuit existed. The MaleCNS v1.0 connectome makes
+the assumption testable. We substitute the measured glomerulus-to-Kenyon-cell
+matrix for the random one and evaluate nearest-neighbour retrieval on measured
+odorant responses. The architecture reproduces its advantage over classical LSH
+($4.8\times$). The measured wiring, however, confers no advantage over a
+configuration-model null that preserves both degree sequences and randomises
+only the pairing: $z \in [-1.59, -1.12]$, with 35--38 of 40 null draws scoring
+higher. Calibrating against matrices of known quality bounds any true advantage
+below $1.8\%$ relative. This is not a claim that the wiring is unstructured;
+independent work has shown that it is not. It is the narrower and, we argue,
+more informative claim that the structure present is not structure that helps
+this computation.
+\end{abstract}
+
+\begin{IEEEkeywords}
+connectomics, locality-sensitive hashing, similarity search, neural
+architectures, null models
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Similarity search --- given a query, return the database items most like it ---
+is a primitive of information retrieval, and locality-sensitive hashing (LSH)
+is its standard sublinear solution \cite{indyk1998,charikar2002}. An LSH maps
+items to short codes such that similar items collide with high probability,
+replacing expensive comparisons in the input space with cheap ones over codes.
+
+Dasgupta, Stevens and Navlakha \cite{dasgupta2017} observed that the fruit
+fly's olfactory circuit computes something structurally similar, and departs
+from classical LSH in three ways: the projection is \emph{sparse} and
+\emph{binary} rather than dense and Gaussian; it \emph{expands} rather than
+reduces dimensionality; and it sparsifies the result by winner-take-all. On
+standard benchmarks, their ``fly algorithm'' outperformed classical LSH by up
+to $3\times$.
+
+Their model of the projection was necessarily synthetic. The
+glomerulus-to-Kenyon-cell connectivity had not been mapped, so they drew a
+sparse binary random matrix whose only biological anchor was that each Kenyon
+cell samples roughly six inputs, matching anatomical estimates. The prevailing
+view at the time held that this connectivity is effectively random
+\cite{caron2013}, which made the choice defensible; whether it was
+\emph{accurate} was untestable.
+
+Two developments make it testable. First, Zheng \textit{et al.}
+\cite{zheng2022} used the hemibrain volume to show that Kenyon cell sampling of
+olfactory input is measurably \emph{not} random, overturning the earlier view.
+Second, the MaleCNS v1.0 connectome \cite{malecns2026} provides a complete
+reconstruction of an adult central nervous system, including the full
+mushroom body input layer.
+
+These two facts create a question that neither answers alone. The wiring is
+structured; the circuit is claimed to implement a hash. \emph{Does the
+structure help the hash?} We find that it does not, to within a $1.8\%$
+resolution bound, while the architecture's advantage over classical LSH
+reproduces. Our contributions are:
+
+\begin{itemize}
+\item the first evaluation of the fly hashing algorithm using measured rather
+than synthetic connectivity;
+\item a null-model protocol that isolates wiring \emph{pairing} from the degree
+sequences it is confounded with, together with calibration matrices that
+establish what effect size the protocol can resolve;
+\item the finding that measured structure yields no similarity-search
+advantage, which retroactively validates the modelling assumption in
+\cite{dasgupta2017} while constraining the functional interpretation of the
+structure reported in \cite{zheng2022}.
+\end{itemize}
+
+\section{Background}
+
+\subsection{Locality-Sensitive Hashing}
+
+A family $\mathcal{H}$ of hash functions over a metric space $(\mathcal{X}, D)$
+is $(r, cr, p_1, p_2)$-sensitive if, for $h$ drawn uniformly from
+$\mathcal{H}$,
+\begin{align}
+D(u,v) \le r &\;\Rightarrow\; \Pr[h(u) = h(v)] \ge p_1, \\
+D(u,v) \ge cr &\;\Rightarrow\; \Pr[h(u) = h(v)] \le p_2,
+\end{align}
+with $c > 1$ and $p_1 > p_2$ \cite{indyk1998}. Classical constructions reduce
+dimensionality with dense random projections and binarise, e.g. the sign of a
+Gaussian projection \cite{charikar2002}.
+
+\subsection{The Fly Circuit as a Hash}
+
+Olfactory receptor neurons converge onto $d \approx 51$ glomeruli, whose
+projection neurons diverge onto $m \approx 2000$ Kenyon cells. Two mechanisms
+shape the code. Divisive normalisation in the antennal lobe removes
+concentration, retaining odour identity \cite{olsen2010}. A single giant
+inhibitory neuron, APL, implements approximate winner-take-all, leaving a few
+percent of Kenyon cells active \cite{turner2008,lin2014}. The resulting sparse
+binary pattern is the circuit's tag for an odour. The same construction also
+supports novelty detection \cite{dasgupta2018}.
+
+\subsection{Null Models for Connectomes}
+
+Asking whether a measured network is ``special'' requires a null preserving
+everything uninteresting. Degree-preserving randomisation \cite{maslov2002} is
+standard: it retains each node's connection count while destroying which node
+connects to which. In a bipartite projection, two degree sequences may be
+preserved independently, and which one is held fixed changes the question
+being asked.
+
+\section{Methods}
+
+\subsection{The Measured Projection}
+
+Let $M \in \{0,1\}^{m \times d}$ with $M_{ij} = 1$ iff glomerulus $j$ synapses
+onto Kenyon cell $i$. Define the \emph{claw count} of cell $i$ and the
+\emph{fan-out} of glomerulus $j$ as
+\begin{equation}
+c_i = \textstyle\sum_{j} M_{ij}, \qquad f_j = \textstyle\sum_{i} M_{ij}.
+\end{equation}
+
+We build $M$ from MaleCNS v1.0 \cite{malecns2026} using every reconstructed
+connection, imposing no synapse-count threshold: the resulting graph has
+$2.56 \times 10^7$ connections and $1.24 \times 10^8$ synapses. Thresholding is
+common when connectomes drive dynamical models \cite{shiu2024}, but Kenyon cell
+claws are individually weak, and a threshold removes them: at a $\ge 5$ synapse
+cut the mean claw count falls to $4.79$, against $5.28$ with no cut and an
+anatomical expectation near six.
+
+Projection neurons are identified by the \texttt{ALPN} class and assigned to
+glomeruli from their cell-type labels; multiglomerular and unnamed types are
+excluded, as are thermo- and hygrosensory channels. Restricted to one
+hemisphere this yields $d = 51$ glomeruli and $m = 1886$ Kenyon cells.
+
+\subsection{The Hash}
+
+Following \cite{dasgupta2017}, for an input $x \in \mathbb{R}^{d}_{\ge 0}$ of
+glomerular responses:
+\begin{align}
+\tilde{x} &= \frac{d}{\sum_{j} x_j}\, x
+  &&\text{(divisive normalisation)}, \\
+y &= M \tilde{x}
+  &&\text{(sparse binary expansion)}, \\
+h_k(x)_i &= \mathbf{1}\!\left[\, y_i \ge y_{(k)} \,\right]
+  &&\text{(winner-take-all)},
+\end{align}
+where $y_{(k)}$ is the $k$-th largest entry of $y$. The tag $h_k(x) \in
+\{0,1\}^m$ has exactly $k$ ones. Tags are compared by Hamming distance.
+
+The classical baseline draws $W \in \mathbb{R}^{d \times k}$ with i.i.d.\
+Gaussian entries and returns $\mathrm{sign}(\tilde{x}^\top W)$, so both methods
+expend $k$ bits.
+
+\subsection{Null and Calibration Models}
+
+Only $M$ varies; input, normalisation, sparsity and scoring are held fixed.
+\begin{itemize}
+\item $\mathcal{N}_{\text{claw}}$: preserves $\{c_i\}$; each cell's inputs are
+drawn uniformly without replacement. Fan-out is flattened.
+\item $\mathcal{N}_{\text{conf}}$: a configuration model preserving
+\emph{both} $\{c_i\}$ and $\{f_j\}$, randomising only the pairing. This is the
+null of record: any difference it exposes cannot be attributed to either
+degree sequence.
+\item $\mathcal{N}_{6}$: the construction of \cite{dasgupta2017}, six uniformly
+drawn inputs per cell.
+\end{itemize}
+Two further matrices are not nulls but calibration probes, used to establish
+what the protocol can detect:
+$\mathcal{P}_{\text{bal}}$, which preserves $\{c_i\}$ while making fan-out as
+uniform as possible, and $\mathcal{P}_{\text{deg}}$, in which every cell draws
+from the same four glomeruli.
+
+\subsection{Evaluation}
+
+For query $q$ let $\mathrm{NN}_\kappa(q)$ be its $\kappa$ nearest items by
+Euclidean distance in $\mathbb{R}^d$ and $R_\kappa(q)$ the $\kappa$ retrieved
+by Hamming distance on tags, ranked. With
+$\mathrm{rel}(i) = \mathbf{1}[R_\kappa(q)_i \in \mathrm{NN}_\kappa(q)]$,
+\begin{equation}
+\mathrm{AP}_\kappa(q) = \frac{1}{\kappa} \sum_{i=1}^{\kappa}
+  \mathrm{rel}(i)\cdot \frac{\sum_{l \le i} \mathrm{rel}(l)}{i},
+\end{equation}
+and $\mathrm{mAP}$ averages over queries. We use $\kappa = 10$.
+
+Writing $s(M)$ for the mAP achieved by matrix $M$, and $\mu, \sigma$ for the
+mean and standard deviation of $s$ over $B = 40$ draws from
+$\mathcal{N}_{\text{conf}}$, we report
+\begin{equation}
+z = \frac{s(M_{\text{real}}) - \mu}{\sigma},
+\qquad
+\delta_{2\sigma} = \frac{2\sigma}{\mu}.
+\end{equation}
+Here $\delta_{2\sigma}$ is the smallest relative advantage the run could
+resolve at two standard deviations; a true advantage must be smaller than it.
+Reporting $\delta_{2\sigma}$ converts an unfalsifiable negative into a bound.
+
+\subsection{Data}
+
+Odorant responses come from DoOR 2.0 \cite{munch2016}, mapped from receptor to
+glomerulus. Its consensus matrix is ${\sim}17\%$ populated, so we retain
+odorants measured across at least 12 glomeruli and glomeruli measured across at
+least 40 odorants, giving $172$ odorants over $35$ glomeruli; the projection is
+restricted accordingly to $35 \times 1838$. Because $172$ items leave the null
+too broad to resolve small effects, queries are Dirichlet-weighted blends of
+two to five measured odorants --- mixtures being what a fly actually encounters
+--- yielding $n = 4000$ items that retain the natural correlation structure.
+
+\section{Results}
+
+\begin{figure*}[t]
+\centerline{\includegraphics[width=0.92\textwidth]{flyhash.png}}
+\caption{Left: the architecture's advantage over classical LSH reproduces with
+measured wiring; the fly traces sit together well above the LSH trace. Right:
+against a configuration-model null the measured wiring lies inside the
+band of indistinguishability at every hash size, while a wrecked matrix is
+rejected at $z < -22$ (off scale).}
+\label{fig:main}
+\end{figure*}
+
+\begin{table}[t]
+\caption{Mean average precision at $\kappa=10$, $n=4000$, $B=40$.}
+\label{tab:map}
+\centering
+\small
+\begin{tabular}{rccccc}
+\toprule
+$k$ & real & $\mathcal{N}_{\text{claw}}$ & $\mathcal{N}_{\text{conf}}$ &
+$\mathcal{N}_{6}$ & LSH \\
+\midrule
+8  & 0.1965 & 0.2102 & $0.2110 \pm .0090$ & 0.2469 & 0.0182 \\
+16 & 0.2882 & 0.3015 & $0.2966 \pm .0060$ & 0.3065 & 0.0662 \\
+32 & 0.3531 & 0.3699 & $0.3593 \pm .0042$ & 0.3535 & 0.1514 \\
+64 & 0.3960 & 0.4137 & $0.4000 \pm .0036$ & 0.3847 & 0.2462 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Architecture Reproduces Its Advantage}
+
+Table~\ref{tab:map} and Fig.~\ref{fig:main} (left) show the expansion plus
+winner-take-all construction outperforming the Gaussian baseline at equal bit
+budget by $4.8\times$ on average, qualitatively reproducing
+\cite{dasgupta2017}. We stress that this is a reproduction in kind, not in
+magnitude: the measured matrix has fixed dimensions, so the benchmarks of
+\cite{dasgupta2017} cannot be passed through it, and our evaluation is at the
+circuit's own scale on its own input modality.
+
+\subsection{The Measured Wiring Confers No Advantage}
+
+Against $\mathcal{N}_{\text{conf}}$ the measured matrix yields
+$z = -1.59, -1.39, -1.47, -1.12$ for $k = 8, 16, 32, 64$, with $38, 35, 37, 36$
+of $40$ null draws scoring higher. The point estimate is consistently
+\emph{below} the null, though never significantly so.
+
+\subsection{Calibration and Resolution}
+
+\begin{table}[t]
+\caption{What the protocol can resolve.}
+\label{tab:sens}
+\centering
+\small
+\begin{tabular}{rccc}
+\toprule
+$k$ & $\delta_{2\sigma}$ & $z(\mathcal{P}_{\text{bal}})$ &
+$z(\mathcal{P}_{\text{deg}})$ \\
+\midrule
+8  & 8.6\% & $-0.42$ & $-22.9$ \\
+16 & 4.1\% & $-0.05$ & $-48.6$ \\
+32 & 2.4\% & $+0.83$ & $-83.8$ \\
+64 & \textbf{1.8\%} & $+1.61$ & $-110.0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:sens} shows the protocol rejecting a degraded matrix
+overwhelmingly. An \emph{improvement} of the size produced by
+$\mathcal{P}_{\text{bal}}$ approaches but does not cross the threshold, which
+is why we state a bound rather than an absence: any true advantage of the
+measured wiring is below $1.8\%$ relative at $k=64$.
+
+\subsection{Robustness}
+
+The conclusion is unchanged under a fourfold change in graph density: at a
+$\ge 5$ synapse threshold ($6.24 \times 10^6$ connections) we obtain
+$z \in [-1.82, -1.12]$, against $[-1.59, -1.12]$ with no threshold. It also
+holds for the contralateral hemisphere, for synapse-weighted rather than binary
+$M$, and for Gaussian, low-rank and sparse synthetic inputs, with $z$ ranging
+over $[-0.81, +1.25]$ and no consistent sign.
+
+One asymmetry is worth recording. Measured fan-out is strongly non-uniform:
+DA1, the pheromone glomerulus, drives 473 Kenyon cells while the quietest
+drives 19. Both $\mathcal{N}_{\text{claw}}$ and $\mathcal{P}_{\text{bal}}$,
+which flatten this, score \emph{above} the measured matrix at every $k$. To the
+extent that the fly allocates disproportionate mushroom body real estate to
+behaviourally privileged channels, that allocation appears to cost
+general-purpose retrieval performance.
+
+\section{Discussion}
+
+Two readings must be kept apart. Our result is \emph{not} that
+glomerulus-to-Kenyon-cell wiring is random; Zheng \textit{et al.}
+\cite{zheng2022} demonstrated otherwise, and our own fan-out asymmetry is
+itself structure. The result is that the structure present confers no
+measurable advantage on similarity search --- the computation the circuit has
+been argued to implement.
+
+This resolves rather than contradicts. The modelling assumption in
+\cite{dasgupta2017} was not merely convenient but accurate \emph{for its
+purpose}: with respect to retrieval quality, the measured matrix and a
+degree-matched random one are interchangeable. Where a computation calls for a
+random projection, evolution appears to have supplied one, and the deviations
+from randomness that exist serve something else --- plausibly innate valence,
+developmental constraint, or the over-allocation to privileged channels
+visible in the fan-out.
+
+More broadly, the availability of complete connectomes invites a class of
+experiment that was previously impossible: taking a circuit-derived algorithm
+and asking whether the measured substrate outperforms its idealisation. Our
+protocol --- fix everything but the wiring, null out the degree sequences
+separately, and calibrate what the test can see --- is not specific to
+olfaction and transfers to any connectome-grounded computational claim.
+
+\section{Limitations}
+
+The claim is a bound, not an absence: advantages below $1.8\%$ relative are
+not excluded, and tightening it requires more items, which costs
+$O(n^2)$ in the retrieval evaluation. We test one task and one metric;
+novelty detection \cite{dasgupta2018}, the circuit's other documented function,
+is untested. DoOR covers 35 of 51 glomeruli, and the $4000$ queries are
+mixtures of $172$ measured odorants rather than independent measurements.
+MaleCNS is a single male animal; whether the conclusion holds across
+individuals, or against the female FlyWire reconstruction
+\cite{dorkenwald2024}, is open.
+
+\section{Conclusion}
+
+Substituting measured connectivity for the random matrix assumed in
+\cite{dasgupta2017} leaves similarity-search performance unchanged to within
+$1.8\%$, while the architectural advantage over classical LSH reproduces. The
+mushroom body is a good hash function because of its shape, not its wiring.
+Code, data pipeline and results are available at
+\url{https://github.com/ssenge/FlyHash-Connectome}.
+
+\begin{thebibliography}{00}
+
+\bibitem{indyk1998} P. Indyk and R. Motwani, ``Approximate nearest neighbors:
+towards removing the curse of dimensionality,'' in \emph{Proc. 30th ACM Symp.
+Theory of Computing (STOC)}, 1998, pp. 604--613.
+
+\bibitem{charikar2002} M. S. Charikar, ``Similarity estimation techniques from
+rounding algorithms,'' in \emph{Proc. 34th ACM Symp. Theory of Computing
+(STOC)}, 2002, pp. 380--388.
+
+\bibitem{dasgupta2017} S. Dasgupta, C. F. Stevens, and S. Navlakha, ``A neural
+algorithm for a fundamental computing problem,'' \emph{Science}, vol. 358, no.
+6364, pp. 793--796, 2017.
+
+\bibitem{caron2013} S. J. C. Caron, V. Ruta, L. F. Abbott, and R. Axel,
+``Random convergence of olfactory inputs in the \emph{Drosophila} mushroom
+body,'' \emph{Nature}, vol. 497, pp. 113--117, 2013.
+
+\bibitem{zheng2022} Z. Zheng \textit{et al.}, ``Structured sampling of
+olfactory input by the fly mushroom body,'' \emph{Current Biology}, vol. 32,
+no. 15, pp. 3334--3349, 2022.
+
+\bibitem{malecns2026} Janelia FlyEM Project Team \textit{et al.}, ``The
+complete connectome of the adult \emph{Drosophila} male central nervous
+system,'' \emph{Cell}, 2026. Dataset: MaleCNS v1.0,
+\url{https://male-cns.janelia.org}.
+
+\bibitem{olsen2010} S. R. Olsen, V. Bhandawat, and R. I. Wilson, ``Divisive
+normalization in olfactory population codes,'' \emph{Neuron}, vol. 66, no. 2,
+pp. 287--299, 2010.
+
+\bibitem{turner2008} G. C. Turner, M. Bazhenov, and G. Laurent, ``Olfactory
+representations by \emph{Drosophila} mushroom body neurons,'' \emph{J.
+Neurophysiol.}, vol. 99, no. 2, pp. 734--746, 2008.
+
+\bibitem{lin2014} A. C. Lin, A. M. Bygrave, A. de Calignon, T. Lee, and G.
+Miesenb\"ock, ``Sparse, decorrelated odor coding in the mushroom body enhances
+learned odor discrimination,'' \emph{Nature Neuroscience}, vol. 17, pp.
+559--568, 2014.
+
+\bibitem{dasgupta2018} S. Dasgupta, T. C. Sheehan, C. F. Stevens, and S.
+Navlakha, ``A neural data structure for novelty detection,'' \emph{Proc. Natl.
+Acad. Sci. USA}, vol. 115, no. 51, pp. 13093--13098, 2018.
+
+\bibitem{maslov2002} S. Maslov and K. Sneppen, ``Specificity and stability in
+topology of protein networks,'' \emph{Science}, vol. 296, no. 5569, pp.
+910--913, 2002.
+
+\bibitem{shiu2024} P. K. Shiu \textit{et al.}, ``A leaky integrate-and-fire
+computational model based on the connectome of the entire adult
+\emph{Drosophila} brain reveals insights into sensorimotor processing,''
+\emph{Nature}, vol. 634, pp. 210--219, 2024.
+
+\bibitem{munch2016} D. M\"unch and C. G. Galizia, ``DoOR 2.0 --- comprehensive
+mapping of \emph{Drosophila melanogaster} odorant responses,'' \emph{Scientific
+Reports}, vol. 6, art. 21841, 2016.
+
+\bibitem{dorkenwald2024} S. Dorkenwald \textit{et al.}, ``Neuronal wiring
+diagram of an adult brain,'' \emph{Nature}, vol. 634, pp. 124--138, 2024.
+
+\end{thebibliography}
+
+\end{document}

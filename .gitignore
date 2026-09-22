@@ -1,0 +1,18 @@
+# LaTeX build products; the sources in paper/ are tracked.
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/flyhash.png
+
+# Downloaded connectome and odour data (~1.1 GB); rebuild with `flypath build`.
+data/
+
+config.yaml
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
