@@ -25,22 +25,24 @@
 
 \begin{abstract}
 The \textit{Drosophila} olfactory circuit has been characterised as a
-locality-sensitive hash: a sparse expansion from ${\sim}50$ glomeruli onto
-${\sim}2000$ Kenyon cells followed by winner-take-all sparsification, which
-outperforms classical locality-sensitive hashing (LSH) at similarity search.
-That result was obtained with a \emph{randomly generated} projection matrix,
-because no connectome of the circuit existed. The MaleCNS v1.0 connectome makes
-the assumption testable. We substitute the measured glomerulus-to-Kenyon-cell
-matrix for the random one and evaluate nearest-neighbour retrieval on measured
-odorant responses. The architecture reproduces its advantage over classical LSH
-($4.8\times$). The measured wiring, however, confers no advantage over a
-configuration-model null that preserves both degree sequences and randomises
-only the pairing: $z \in [-1.59, -1.12]$, with 35--38 of 40 null draws scoring
-higher. Calibrating against matrices of known quality bounds any true advantage
-below $1.8\%$ relative. This is not a claim that the wiring is unstructured;
-independent work has shown that it is not. It is the narrower and, we argue,
-more informative claim that the structure present is not structure that helps
-this computation.
+locality-sensitive hash: a sparse binary expansion from ${\sim}50$ glomeruli
+onto ${\sim}2000$ Kenyon cells, followed by winner-take-all sparsification,
+which outperforms classical locality-sensitive hashing (LSH) at similarity
+search. Because no reconstruction of the circuit existed when that result was
+obtained, its projection matrix was generated at random, anchored to biology
+only through the number of inputs each Kenyon cell receives. The MaleCNS
+connectome now permits the substitution of measured connectivity for that
+idealisation. Evaluating nearest-neighbour retrieval over measured odorant
+responses, we find the architectural advantage intact ($4.8\times$ over
+classical LSH), while the measured wiring performs marginally \emph{worse}
+than a curveball null that fixes both degree sequences and randomises only
+the pairing: a $90\%$ bootstrap interval over odorants places the difference
+between $-2.2\%$ and $-0.3\%$ at the largest hash size. The protocol resolves
+effects of $1.7\%$, and rejects a deliberately degraded matrix at $z<-100$, so
+the interval reflects the circuit rather than the instrument. We do not claim
+the wiring is unstructured, which independent work has refuted; we claim that
+the structure it carries does not serve this computation, and costs a little
+of it.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -50,51 +52,55 @@ architectures, null models
 
 \section{Introduction}
 
-Similarity search --- given a query, return the database items most like it ---
-is a primitive of information retrieval, and locality-sensitive hashing (LSH)
-is its standard sublinear solution \cite{indyk1998,charikar2002}. An LSH maps
-items to short codes such that similar items collide with high probability,
-replacing expensive comparisons in the input space with cheap ones over codes.
+Similarity search --- retrieving the database items most like a query --- is a
+primitive of information retrieval, and locality-sensitive hashing (LSH) is its
+standard sublinear solution \cite{indyk1998,charikar2002}. An LSH maps items to
+short codes under which similar items collide with high probability, so that
+expensive comparisons in the input space are replaced by cheap comparisons over
+codes.
 
 Dasgupta, Stevens and Navlakha \cite{dasgupta2017} observed that the fruit
-fly's olfactory circuit computes something structurally similar, and departs
-from classical LSH in three ways: the projection is \emph{sparse} and
-\emph{binary} rather than dense and Gaussian; it \emph{expands} rather than
-reduces dimensionality; and it sparsifies the result by winner-take-all. On
-standard benchmarks, their ``fly algorithm'' outperformed classical LSH by up
-to $3\times$.
+fly's olfactory circuit computes something structurally analogous, and that it
+departs from classical practice in three respects: its projection is sparse and
+binary rather than dense and Gaussian, it expands dimensionality rather than
+reducing it, and it sparsifies the expanded representation by winner-take-all.
+Evaluated on standard retrieval benchmarks, this ``fly algorithm'' improved on
+classical LSH by as much as $3\times$.
 
-Their model of the projection was necessarily synthetic. The
-glomerulus-to-Kenyon-cell connectivity had not been mapped, so they drew a
-sparse binary random matrix whose only biological anchor was that each Kenyon
-cell samples roughly six inputs, matching anatomical estimates. The prevailing
-view at the time held that this connectivity is effectively random
-\cite{caron2013}, which made the choice defensible; whether it was
-\emph{accurate} was untestable.
+The projection matrix in that work was necessarily synthetic. Connectivity
+between olfactory projection neurons and Kenyon cells had not been
+reconstructed, so the authors sampled a sparse binary random matrix whose sole
+biological anchor was a mean of roughly six inputs per Kenyon cell, consistent
+with anatomical estimates. The choice was well motivated: the prevailing
+account held such connectivity to be effectively random \cite{caron2013}.
+Whether the idealisation was \emph{accurate}, as opposed to merely convenient,
+could not be determined.
 
-Two developments make it testable. First, Zheng \textit{et al.}
-\cite{zheng2022} used the hemibrain volume to show that Kenyon cell sampling of
-olfactory input is measurably \emph{not} random, overturning the earlier view.
-Second, the MaleCNS v1.0 connectome \cite{malecns2026} provides a complete
-reconstruction of an adult central nervous system, including the full
-mushroom body input layer.
+Two developments make the question answerable. Zheng \textit{et al.}
+\cite{zheng2022} exploited the hemibrain volume to demonstrate that Kenyon
+cells sample olfactory input in a measurably non-random fashion, displacing the
+earlier account. Independently, the MaleCNS connectome \cite{malecns2026}
+supplies a complete synaptic reconstruction of an adult central nervous system,
+and with it the entire mushroom body input layer of a single animal.
 
-These two facts create a question that neither answers alone. The wiring is
-structured; the circuit is claimed to implement a hash. \emph{Does the
-structure help the hash?} We find that it does not, to within a $1.8\%$
-resolution bound, while the architecture's advantage over classical LSH
-reproduces. Our contributions are:
+Taken together these results pose a question that neither resolves. The wiring
+is structured, and the circuit is argued to implement a hash; it does not
+follow that the structure is \emph{for} the hash. Substituting measured
+connectivity for the idealisation of \cite{dasgupta2017} therefore tests a
+specific functional hypothesis rather than a general claim about randomness.
+We report that the substitution yields no benefit, and a small reliable cost.
+Our contributions are:
 
 \begin{itemize}
-\item the first evaluation of the fly hashing algorithm using measured rather
-than synthetic connectivity;
-\item a null-model protocol that isolates wiring \emph{pairing} from the degree
-sequences it is confounded with, together with calibration matrices that
-establish what effect size the protocol can resolve;
-\item the finding that measured structure yields no similarity-search
-advantage, which retroactively validates the modelling assumption in
-\cite{dasgupta2017} while constraining the functional interpretation of the
-structure reported in \cite{zheng2022}.
+\item the first evaluation of the fly hashing algorithm under measured rather
+than sampled connectivity;
+\item a null-model protocol that separates the contribution of wiring
+\emph{pairing} from the degree sequences with which it is confounded, paired
+with calibration matrices that establish the effect size the protocol can
+resolve;
+\item an equivalence-test formulation, with uncertainty propagated at the level
+of odorants rather than queries, under which the measured matrix is bounded
+within $2.2\%$ of its null --- on the deficit side.
 \end{itemize}
 
 \section{Background}
@@ -177,22 +183,36 @@ expend $k$ bits.
 
 \subsection{Null and Calibration Models}
 
-Only $M$ varies; input, normalisation, sparsity and scoring are held fixed.
+Only $M$ varies across conditions; input, normalisation, sparsity and scoring
+are held fixed, so any difference is attributable to connectivity alone.
+
 \begin{itemize}
-\item $\mathcal{N}_{\text{claw}}$: preserves $\{c_i\}$; each cell's inputs are
-drawn uniformly without replacement. Fan-out is flattened.
-\item $\mathcal{N}_{\text{conf}}$: a configuration model preserving
-\emph{both} $\{c_i\}$ and $\{f_j\}$, randomising only the pairing. This is the
-null of record: any difference it exposes cannot be attributed to either
-degree sequence.
-\item $\mathcal{N}_{6}$: the construction of \cite{dasgupta2017}, six uniformly
-drawn inputs per cell.
+\item $\mathcal{N}_{\text{claw}}$ preserves $\{c_i\}$ and draws each cell's
+inputs uniformly without replacement, thereby flattening fan-out.
+\item $\mathcal{N}_{\text{conf}}$ preserves \emph{both} $\{c_i\}$ and $\{f_j\}$
+and randomises only the pairing. This is the null of record: a difference it
+exposes cannot be ascribed to either degree sequence.
+\item $\mathcal{N}_{6}$ reproduces the construction of \cite{dasgupta2017},
+six uniformly drawn inputs per cell.
 \end{itemize}
-Two further matrices are not nulls but calibration probes, used to establish
-what the protocol can detect:
-$\mathcal{P}_{\text{bal}}$, which preserves $\{c_i\}$ while making fan-out as
-uniform as possible, and $\mathcal{P}_{\text{deg}}$, in which every cell draws
-from the same four glomeruli.
+
+Sampling $\mathcal{N}_{\text{conf}}$ correctly requires care. Permuting edge
+endpoints and discarding the resulting collisions is attractively simple but
+loses several percent of the connections, and therefore samples from the wrong
+space; the deficit systematically handicaps the null. We instead use curveball
+swaps \cite{strona2014}: two Kenyon cells are drawn, the glomeruli unique to
+each are pooled, and the pool is redealt between them at the original
+cardinalities. Both margins are invariant by construction, which we verify
+exactly, and $30$ attempted swaps per cell is well beyond the mixing time at
+this density.
+
+Two further matrices are not nulls but calibration probes, included to
+establish what the protocol can detect. $\mathcal{P}_{\text{bal}}$ preserves
+$\{c_i\}$ while equalising fan-out as far as the claw counts permit, and is
+expected to be mildly superior; $\mathcal{P}_{\text{deg}}$ restricts every cell
+to the same four glomeruli, and is expected to be far worse. Without such
+probes a null result is uninterpretable, since an insensitive test and a true
+absence of effect produce identical output.
 
 \subsection{Evaluation}
 
@@ -206,17 +226,23 @@ $\mathrm{rel}(i) = \mathbf{1}[R_\kappa(q)_i \in \mathrm{NN}_\kappa(q)]$,
 \end{equation}
 and $\mathrm{mAP}$ averages over queries. We use $\kappa = 10$.
 
-Writing $s(M)$ for the mAP achieved by matrix $M$, and $\mu, \sigma$ for the
-mean and standard deviation of $s$ over $B = 40$ draws from
-$\mathcal{N}_{\text{conf}}$, we report
-\begin{equation}
-z = \frac{s(M_{\text{real}}) - \mu}{\sigma},
-\qquad
-\delta_{2\sigma} = \frac{2\sigma}{\mu}.
-\end{equation}
-Here $\delta_{2\sigma}$ is the smallest relative advantage the run could
-resolve at two standard deviations; a true advantage must be smaller than it.
-Reporting $\delta_{2\sigma}$ converts an unfalsifiable negative into a bound.
+Two sources of variation must be carried. Retrieval quality varies across
+draws of a null matrix, and it varies across the items queried; and because
+queries are constructed from a smaller set of measured odorants, they are not
+independent. We therefore resample \emph{odorants}, not queries: for each of
+$2000$ bootstrap draws we sample odorants with replacement, restrict to the
+queries they dominate, and recompute the difference between the measured
+matrix and the mean over $B=40$ null draws.
+
+Let $\Delta$ denote that difference and $\bar{s}_0$ the null mean. We report
+the $90\%$ interval of $\Delta/\bar{s}_0$, and declare equivalence at margin
+$\delta$ when the interval lies within $(-\delta, +\delta)$, which is the
+two-one-sided-tests criterion. This matters: a non-significant difference is
+not evidence of absence, whereas an interval bounded inside $\pm\delta$ is
+evidence that no effect larger than $\delta$ is present. We also report
+$z = (s(M_{\text{real}}) - \bar{s}_0)/\sigma_0$ for comparability with the
+connectomics literature, and the two-sigma resolution
+$\delta_{2\sigma} = 2\sigma_0/\bar{s}_0$.
 
 \subsection{Data}
 
@@ -233,11 +259,12 @@ two to five measured odorants --- mixtures being what a fly actually encounters
 
 \begin{figure*}[t]
 \centerline{\includegraphics[width=0.92\textwidth]{flyhash.png}}
-\caption{Left: the architecture's advantage over classical LSH reproduces with
-measured wiring; the fly traces sit together well above the LSH trace. Right:
-against a configuration-model null the measured wiring lies inside the
-band of indistinguishability at every hash size, while a wrecked matrix is
-rejected at $z < -22$ (off scale).}
+\caption{\textbf{Left:} the architectural advantage over classical LSH survives
+the substitution of measured connectivity; measured matrix, null and the
+construction of \cite{dasgupta2017} are mutually indistinguishable at this
+scale. \textbf{Right:} retrieval relative to that null, with $90\%$ bootstrap
+intervals over odorants. The deficit excludes zero at every hash size yet stays
+within $3\%$ for $k \ge 16$; the degraded probe falls at $z = -113$.}
 \label{fig:main}
 \end{figure*}
 
@@ -251,118 +278,150 @@ rejected at $z < -22$ (off scale).}
 $k$ & real & $\mathcal{N}_{\text{claw}}$ & $\mathcal{N}_{\text{conf}}$ &
 $\mathcal{N}_{6}$ & LSH \\
 \midrule
-8  & 0.1965 & 0.2102 & $0.2110 \pm .0090$ & 0.2469 & 0.0182 \\
-16 & 0.2882 & 0.3015 & $0.2966 \pm .0060$ & 0.3065 & 0.0662 \\
-32 & 0.3531 & 0.3699 & $0.3593 \pm .0042$ & 0.3535 & 0.1514 \\
-64 & 0.3960 & 0.4137 & $0.4000 \pm .0036$ & 0.3847 & 0.2462 \\
+8  & 0.1965 & 0.2102 & $0.2051 \pm .0077$ & 0.2469 & 0.0182 \\
+16 & 0.2882 & 0.3015 & $0.2940 \pm .0055$ & 0.3065 & 0.0662 \\
+32 & 0.3531 & 0.3699 & $0.3581 \pm .0034$ & 0.3535 & 0.1514 \\
+64 & 0.3960 & 0.4137 & $0.4009 \pm .0035$ & 0.3847 & 0.2462 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Effect size against $\mathcal{N}_{\text{conf}}$, and what the
+protocol resolves. The interval is a $90\%$ bootstrap over odorants.}
+\label{tab:sens}
+\centering
+\small
+\begin{tabular}{rcccc}
+\toprule
+$k$ & $\Delta/\bar{s}_0$ CI & $\delta_{2\sigma}$ &
+$z(\mathcal{P}_{\text{bal}})$ & $z(\mathcal{P}_{\text{deg}})$ \\
+\midrule
+8  & $[-6.9, -1.2]\%$ & 7.5\% & $+0.27$ & $-26.1$ \\
+16 & $[-3.5, -0.4]\%$ & 3.7\% & $+0.43$ & $-52.9$ \\
+32 & $[-2.6, -0.2]\%$ & 1.9\% & $+1.40$ & $-104.0$ \\
+64 & $\mathbf{[-2.2, -0.3]\%}$ & 1.7\% & $+1.39$ & $-113.3$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{The Architecture Reproduces Its Advantage}
 
-Table~\ref{tab:map} and Fig.~\ref{fig:main} (left) show the expansion plus
-winner-take-all construction outperforming the Gaussian baseline at equal bit
-budget by $4.8\times$ on average, qualitatively reproducing
-\cite{dasgupta2017}. We stress that this is a reproduction in kind, not in
-magnitude: the measured matrix has fixed dimensions, so the benchmarks of
-\cite{dasgupta2017} cannot be passed through it, and our evaluation is at the
-circuit's own scale on its own input modality.
+Table~\ref{tab:map} and Fig.~\ref{fig:main} (left) show the expansion and
+winner-take-all construction outperforming the Gaussian baseline at an equal
+bit budget by a factor of $4.8$ averaged over hash sizes, qualitatively
+reproducing \cite{dasgupta2017}. The reproduction is in kind rather than in
+magnitude, and deliberately so: the measured matrix has fixed dimensions, so
+the benchmarks of \cite{dasgupta2017} cannot be passed through it without
+first projecting them into the circuit's input space, which would no longer
+test the circuit. Our evaluation is therefore conducted at the fly's own scale
+and in its own modality, where the comparison is meaningful.
 
 \subsection{The Measured Wiring Confers No Advantage}
 
 Against $\mathcal{N}_{\text{conf}}$ the measured matrix yields
-$z = -1.59, -1.39, -1.47, -1.12$ for $k = 8, 16, 32, 64$, with $38, 35, 37, 36$
-of $40$ null draws scoring higher. The point estimate is consistently
-\emph{below} the null, though never significantly so.
+$z = -1.11, -1.04, -1.47, -1.40$ at $k = 8, 16, 32, 64$, with $33, 35, 38, 38$
+of $40$ null draws scoring higher. Under the odorant-level bootstrap the
+$90\%$ interval on the relative difference is $[-6.9\%, -1.2\%]$,
+$[-3.5\%, -0.4\%]$, $[-2.6\%, -0.2\%]$ and $[-2.2\%, -0.3\%]$ respectively.
+
+Two things follow, and they should not be conflated. First, the interval
+excludes zero at every hash size, so the deficit is reliable rather than
+noise: measured connectivity is slightly \emph{worse} for retrieval than a
+degree-matched random rewiring. Second, the deficit is small and bounded ---
+within $2.2\%$ at $k=64$ --- so the measured matrix is equivalent to its null
+at any margin a practitioner would plausibly care about. The appropriate
+summary is not that wiring makes no difference, but that it makes a small
+negative one.
 
 \subsection{Calibration and Resolution}
 
-\begin{table}[t]
-\caption{What the protocol can resolve.}
-\label{tab:sens}
-\centering
-\small
-\begin{tabular}{rccc}
-\toprule
-$k$ & $\delta_{2\sigma}$ & $z(\mathcal{P}_{\text{bal}})$ &
-$z(\mathcal{P}_{\text{deg}})$ \\
-\midrule
-8  & 8.6\% & $-0.42$ & $-22.9$ \\
-16 & 4.1\% & $-0.05$ & $-48.6$ \\
-32 & 2.4\% & $+0.83$ & $-83.8$ \\
-64 & \textbf{1.8\%} & $+1.61$ & $-110.0$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:sens} shows the protocol rejecting a degraded matrix
-overwhelmingly. An \emph{improvement} of the size produced by
-$\mathcal{P}_{\text{bal}}$ approaches but does not cross the threshold, which
-is why we state a bound rather than an absence: any true advantage of the
-measured wiring is below $1.8\%$ relative at $k=64$.
+Table~\ref{tab:sens} bounds the instrument. A degraded matrix is rejected at
+$z$ between $-26$ and $-113$, so gross departures are detected without
+difficulty. An improvement of the magnitude produced by
+$\mathcal{P}_{\text{bal}}$ reaches $z = +1.40$ and is not resolved, consistent
+with a two-sigma resolution of $1.7\%$ at $k=64$. The bootstrap interval is
+tighter than this threshold because it pools information across queries rather
+than across matrices, which is why we treat it, and not $z$, as the primary
+statistic.
 
 \subsection{Robustness}
 
-The conclusion is unchanged under a fourfold change in graph density: at a
-$\ge 5$ synapse threshold ($6.24 \times 10^6$ connections) we obtain
-$z \in [-1.82, -1.12]$, against $[-1.59, -1.12]$ with no threshold. It also
-holds for the contralateral hemisphere, for synapse-weighted rather than binary
-$M$, and for Gaussian, low-rank and sparse synthetic inputs, with $z$ ranging
-over $[-0.81, +1.25]$ and no consistent sign.
+The conclusion is stable under the choices that might plausibly have driven
+it. Imposing a $\ge 5$ synapse reconstruction threshold reduces the graph
+fourfold, to $6.24 \times 10^6$ connections, and moves the mean claw count from
+$5.28$ to $4.79$; $z$ remains within $[-1.82, -1.12]$. The result also holds
+for the contralateral mushroom body, for synapse-weighted rather than binary
+$M$, and for Gaussian, low-rank and sparse synthetic inputs, over which $z$
+ranges in $[-0.81, +1.25]$ without consistent sign.
 
-One asymmetry is worth recording. Measured fan-out is strongly non-uniform:
-DA1, the pheromone glomerulus, drives 473 Kenyon cells while the quietest
-drives 19. Both $\mathcal{N}_{\text{claw}}$ and $\mathcal{P}_{\text{bal}}$,
-which flatten this, score \emph{above} the measured matrix at every $k$. To the
-extent that the fly allocates disproportionate mushroom body real estate to
-behaviourally privileged channels, that allocation appears to cost
-general-purpose retrieval performance.
+One asymmetry deserves separate record, because it suggests where the deficit
+originates. Measured fan-out is strongly non-uniform: DA1, the glomerulus
+carrying the pheromone cVA, drives $473$ Kenyon cells, while the least
+connected drives $19$. Both $\mathcal{N}_{\text{claw}}$ and
+$\mathcal{P}_{\text{bal}}$, which flatten this distribution while leaving claw
+counts intact, score above the measured matrix at every $k$. Disproportionate
+allocation of mushroom body capacity to behaviourally privileged channels is
+precisely the kind of structure reported by \cite{zheng2022}, and on this
+evidence it is paid for in general-purpose retrieval.
 
 \section{Discussion}
 
-Two readings must be kept apart. Our result is \emph{not} that
-glomerulus-to-Kenyon-cell wiring is random; Zheng \textit{et al.}
-\cite{zheng2022} demonstrated otherwise, and our own fan-out asymmetry is
-itself structure. The result is that the structure present confers no
-measurable advantage on similarity search --- the computation the circuit has
-been argued to implement.
+Our result should not be read as a claim that projection-neuron to Kenyon-cell
+connectivity is random. Zheng \textit{et al.} \cite{zheng2022} established
+that it is not, and the fan-out asymmetry documented above is itself
+structure, visible in the same data we analyse. The claim is narrower: the
+structure that is present confers no advantage on similarity search, the
+computation the circuit has been argued to perform, and in fact exacts a
+small cost.
 
-This resolves rather than contradicts. The modelling assumption in
-\cite{dasgupta2017} was not merely convenient but accurate \emph{for its
-purpose}: with respect to retrieval quality, the measured matrix and a
-degree-matched random one are interchangeable. Where a computation calls for a
-random projection, evolution appears to have supplied one, and the deviations
-from randomness that exist serve something else --- plausibly innate valence,
-developmental constraint, or the over-allocation to privileged channels
-visible in the fan-out.
+This reconciles the two literatures rather than opposing either. The
+idealisation adopted in \cite{dasgupta2017} was not merely expedient but
+substantively adequate for its purpose, since with respect to retrieval
+quality a measured matrix and a degree-matched random one are interchangeable
+to within a few percent. Where a computation requires a random projection,
+evolution appears to have supplied something close enough to one; the
+departures from randomness that do exist are then free to serve other ends,
+of which innate valence, developmental constraint and the over-allocation
+visible in fan-out are the obvious candidates. A circuit can implement an
+algorithm well without its every structural feature being an adaptation for
+that algorithm, and distinguishing the two requires exactly the kind of null
+the connectome now makes available.
 
-More broadly, the availability of complete connectomes invites a class of
-experiment that was previously impossible: taking a circuit-derived algorithm
-and asking whether the measured substrate outperforms its idealisation. Our
-protocol --- fix everything but the wiring, null out the degree sequences
-separately, and calibrate what the test can see --- is not specific to
-olfaction and transfers to any connectome-grounded computational claim.
+The methodological point generalises beyond olfaction. Connectome-constrained
+models are increasingly used to ground computational claims
+\cite{shiu2024,lappalainen2024}, and such claims are testable in a way they
+recently were not: fix every component of a circuit-derived algorithm except
+its measured connectivity, randomise that against nulls which preserve the
+uninteresting invariants, and calibrate the comparison against matrices whose
+quality is known in advance. Absent the last step, a null result is
+indistinguishable from an insensitive measurement.
 
 \section{Limitations}
 
-The claim is a bound, not an absence: advantages below $1.8\%$ relative are
-not excluded, and tightening it requires more items, which costs
-$O(n^2)$ in the retrieval evaluation. We test one task and one metric;
-novelty detection \cite{dasgupta2018}, the circuit's other documented function,
-is untested. DoOR covers 35 of 51 glomeruli, and the $4000$ queries are
-mixtures of $172$ measured odorants rather than independent measurements.
-MaleCNS is a single male animal; whether the conclusion holds across
-individuals, or against the female FlyWire reconstruction
-\cite{dorkenwald2024}, is open.
+The central claim is a bounded difference rather than an absence: effects
+smaller than roughly two percent are not excluded, and tightening the bound
+requires more queries, which is quadratic in the retrieval evaluation. We
+examine a single task under a single metric; novelty detection
+\cite{dasgupta2018}, the circuit's other documented function, may weight
+connectivity differently and is untested here. DoOR covers $35$ of $51$
+glomeruli, so the projection is evaluated on a subset of its input channels,
+and the $4000$ queries are mixtures of $172$ measured odorants rather than
+independent measurements --- which the odorant-level bootstrap accounts for in
+its uncertainty, but which still limits the effective sample. MaleCNS
+reconstructs one male animal; whether the conclusion holds across individuals,
+or against the female FlyWire reconstruction \cite{dorkenwald2024}, remains
+open, and a cross-sex comparison is now feasible.
 
 \section{Conclusion}
 
-Substituting measured connectivity for the random matrix assumed in
-\cite{dasgupta2017} leaves similarity-search performance unchanged to within
-$1.8\%$, while the architectural advantage over classical LSH reproduces. The
-mushroom body is a good hash function because of its shape, not its wiring.
-Code, data pipeline and results are available at
+Replacing the random projection assumed in \cite{dasgupta2017} with measured
+mushroom body connectivity leaves similarity-search performance within $2.2\%$
+of a degree-matched null, on the deficit side, while the architectural
+advantage over classical LSH is undiminished. The mushroom body is an
+effective hash function by virtue of its shape rather than its wiring, and the
+structure its wiring does carry appears to serve some other purpose at a
+modest cost to this one. Code, data pipeline and results are available at
 \url{https://github.com/ssenge/FlyHash-Connectome}.
 
 \begin{thebibliography}{00}
@@ -421,6 +480,15 @@ computational model based on the connectome of the entire adult
 \bibitem{munch2016} D. M\"unch and C. G. Galizia, ``DoOR 2.0 --- comprehensive
 mapping of \emph{Drosophila melanogaster} odorant responses,'' \emph{Scientific
 Reports}, vol. 6, art. 21841, 2016.
+
+\bibitem{strona2014} G. Strona, D. Nappo, F. Boccacci, S. Fattorini, and J.
+San-Miguel-Ayanz, ``A fast and unbiased procedure to randomize ecological
+matrices with fixed row and column totals,'' \emph{Nature Communications},
+vol. 5, art. 4114, 2014.
+
+\bibitem{lappalainen2024} J. K. Lappalainen \textit{et al.},
+``Connectome-constrained networks predict neural activity across the fly
+visual system,'' \emph{Nature}, vol. 634, pp. 1132--1140, 2024.
 
 \bibitem{dorkenwald2024} S. Dorkenwald \textit{et al.}, ``Neuronal wiring
 diagram of an adult brain,'' \emph{Nature}, vol. 634, pp. 124--138, 2024.

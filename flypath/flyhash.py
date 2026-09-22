@@ -108,35 +108,44 @@ def shuffle_kc(p: Projection, seed: int = 0) -> Projection:
     return Projection("shuffle_kc", out, p.glomeruli)
 
 
-def shuffle_both(p: Projection, seed: int = 0) -> Projection:
-    """Configuration model: claws per cell and cells per glomerulus both kept.
+def shuffle_both(p: Projection, seed: int = 0, sweeps: int = 30) -> Projection:
+    """Configuration model by curveball swaps, preserving both margins exactly.
 
-    Edge endpoints are drawn from stub lists, so both degree sequences survive
-    while every association between them is destroyed.
+    A naive approach -- permuting edge endpoints and discarding collisions --
+    loses a few percent of the connections and is therefore not a sample from
+    the fixed-margin space at all. The curveball algorithm of Strona et al.
+    instead repeatedly picks two Kenyon cells, takes the glomeruli unique to
+    each, and redeals them at random between the two. Every cell keeps its claw
+    count and every glomerulus its fan-out by construction, while the pairing
+    is randomised. `sweeps` swap attempts per cell is well past the mixing time
+    for a matrix this sparse.
     """
     rng = np.random.default_rng(seed)
     n_g, n_c = p.matrix.shape
-    g_idx, c_idx = np.nonzero(p.matrix)
-    vals = p.matrix[g_idx, c_idx]
+    cells = [set(np.flatnonzero(p.matrix[:, c] > 0).tolist()) for c in range(n_c)]
 
-    for _ in range(60):                      # a few passes to clear collisions
-        perm = rng.permutation(len(g_idx))
-        trial_g = g_idx[perm]
-        seen = set()
-        ok = np.ones(len(trial_g), bool)
-        for i, (a, b) in enumerate(zip(trial_g, c_idx)):
-            if (a, b) in seen:
-                ok[i] = False
-            else:
-                seen.add((a, b))
-        if ok.all():
-            g_idx = trial_g
-            break
-    else:
-        g_idx = trial_g                      # accept the small number of collisions
+    for _ in range(sweeps * n_c):
+        i, j = rng.integers(0, n_c, 2)
+        if i == j:
+            continue
+        a, b = cells[i], cells[j]
+        shared = a & b
+        free = list((a | b) - shared)
+        if len(free) < 2:
+            continue
+        rng.shuffle(free)
+        k = len(a) - len(shared)
+        cells[i] = shared | set(free[:k])
+        cells[j] = shared | set(free[k:])
 
     out = np.zeros_like(p.matrix)
-    np.add.at(out, (g_idx, c_idx), vals)
+    weights = p.matrix[p.matrix > 0]
+    weights = rng.permutation(weights)            # keep the weight distribution
+    at = 0
+    for c, gl in enumerate(cells):
+        idx = sorted(gl)
+        out[idx, c] = weights[at:at + len(idx)]
+        at += len(idx)
     return Projection("shuffle_both", out, p.glomeruli)
 
 
@@ -196,7 +205,7 @@ SENSITIVITY = {"balanced": balanced, "degenerate": degenerate}
 
 
 def mixtures(x: np.ndarray, n: int, seed: int = 0,
-             lo: int = 2, hi: int = 5) -> np.ndarray:
+             lo: int = 2, hi: int = 5, with_clusters: bool = False):
     """Blends of measured odorants, which is what a fly meets in the world.
 
     DoOR tops out near 250 usable odorants, too few to resolve a small effect.
@@ -205,12 +214,47 @@ def mixtures(x: np.ndarray, n: int, seed: int = 0,
     """
     rng = np.random.default_rng(seed)
     out = np.zeros((n, x.shape[1]))
+    cluster = np.zeros(n, np.int32)
     for i in range(n):
         k = int(rng.integers(lo, hi + 1))
         pick = rng.choice(len(x), k, replace=False)
         w = rng.dirichlet(np.ones(k))
         out[i] = (x[pick] * w[:, None]).sum(axis=0)
-    return out
+        cluster[i] = int(pick[np.argmax(w)])     # dominant component
+    return (out, cluster) if with_clusters else out
+
+
+def equivalence(real_ap: np.ndarray, null_aps: list[np.ndarray],
+                cluster: np.ndarray | None, seed: int = 0,
+                draws: int = 2000) -> dict:
+    """A confidence interval on (real - null), resampling whole odorants.
+
+    Queries built from the same measured odorant are not independent, so the
+    bootstrap resamples odorants rather than queries. The interval carries both
+    sources of variation, across items and across null matrices. Equivalence at
+    a margin delta is declared when the whole interval lies inside
+    (-delta, +delta), which is the two-one-sided-tests criterion; a
+    non-significant difference on its own would not license the claim.
+    """
+    rng = np.random.default_rng(seed)
+    n = len(real_ap)
+    groups = (np.arange(n) if cluster is None else cluster)
+    uniq = np.unique(groups)
+    index = {g: np.flatnonzero(groups == g) for g in uniq}
+    null_mat = np.vstack(null_aps)
+
+    deltas = np.empty(draws)
+    for b in range(draws):
+        pick = rng.choice(uniq, len(uniq), replace=True)
+        rows = np.concatenate([index[g] for g in pick])
+        deltas[b] = real_ap[rows].mean() - null_mat[:, rows].mean()
+    base = float(null_mat.mean())
+    lo, hi = np.percentile(deltas, [5, 95])       # 90% CI, the TOST convention
+    return {"delta": float(real_ap.mean() - base),
+            "ci90": [float(lo), float(hi)],
+            "relative_ci90": [float(lo / base), float(hi / base)],
+            "equivalence_margin": float(max(abs(lo), abs(hi)) / base),
+            "n_clusters": int(len(uniq))}
 
 
 # --------------------------------------------------------------------------- the hash
@@ -255,7 +299,8 @@ def true_neighbours(x: np.ndarray, k: int) -> np.ndarray:
 
 
 def mean_average_precision(x: np.ndarray, tag: np.ndarray, k: int = 10,
-                           truth: np.ndarray | None = None) -> float:
+                           truth: np.ndarray | None = None,
+                           per_item: bool = False):
     """How well does the hash recover each item's true nearest neighbours?
 
     Kept dense on purpose. A sparse overlap product looks tempting because fly
@@ -279,7 +324,8 @@ def mean_average_precision(x: np.ndarray, tag: np.ndarray, k: int = 10,
     cum = np.cumsum(hit, axis=1)
     ranks = np.arange(1, k + 1)
     prec = np.where(hit, cum / ranks, 0.0)
-    return float((prec.sum(axis=1) / truth.shape[1]).mean())
+    per_query = prec.sum(axis=1) / truth.shape[1]
+    return per_query if per_item else float(per_query.mean())
 
 
 # --------------------------------------------------------------------------- odours
@@ -366,11 +412,13 @@ def experiment(graph, cfg, *, side: str = "R", sizes=(8, 16, 32, 64),
     block reports whether the test can in fact see one.
     """
     full = mushroom_body(graph, side=side)
+    cluster = None
     if dataset in ("odours", "mixtures"):
         x, names, used = load_odours(cfg, full.glomeruli)
         proj = align(full, used)
         if dataset == "mixtures":
-            x = mixtures(x, n_items, seed=int(cfg["seed"]))
+            x, cluster = mixtures(x, n_items, seed=int(cfg["seed"]),
+                                  with_clusters=True)
     else:
         rng = np.random.default_rng(int(cfg["seed"]))
         d = len(full.glomeruli)
@@ -380,15 +428,22 @@ def experiment(graph, cfg, *, side: str = "R", sizes=(8, 16, 32, 64),
     truth = true_neighbours(x, neighbours)      # matrix-independent; compute once
     rows = []
     for k in sizes:
-        entry = {"hash_size": int(k),
-                 "real": float(mean_average_precision(
-                     x, tags(x, proj, k, weighted=weighted), neighbours, truth))}
+        real_ap = mean_average_precision(
+            x, tags(x, proj, k, weighted=weighted), neighbours, truth,
+            per_item=True)
+        entry = {"hash_size": int(k), "real": float(real_ap.mean())}
+        conf_aps = []
         for cname, fn in CONTROLS.items():
-            v = np.array([mean_average_precision(
-                x, tags(x, fn(proj, seed=s), k, weighted=weighted), neighbours, truth)
-                for s in range(seeds)])
+            aps = [mean_average_precision(
+                x, tags(x, fn(proj, seed=s), k, weighted=weighted), neighbours,
+                truth, per_item=True) for s in range(seeds)]
+            if cname == "shuffle_both":
+                conf_aps = aps
+            v = np.array([a.mean() for a in aps])
             entry[cname] = {"mean": float(v.mean()), "std": float(v.std()),
                             "nulls_beating_real": int((v >= entry["real"]).sum())}
+        entry["equivalence"] = equivalence(real_ap, conf_aps, cluster,
+                                           seed=int(cfg["seed"]))
         lsh = np.array([mean_average_precision(x, gaussian_lsh(x, k, seed=s),
                                                neighbours, truth)
                         for s in range(seeds)])
@@ -439,20 +494,26 @@ def print_experiment(res: dict) -> None:
         n = r["shuffle_both"]
         print(f"    hash {r['hash_size']:3d}   z = {r['z_vs_strict_null']:+5.2f}   "
               f"nulls beating real: {n['nulls_beating_real']}/{res['seeds']}")
-    print("\n  resolution: the smallest advantage detectable at 2 sigma")
+    print("\n  equivalence: 90% CI on (real - null), odorant-level bootstrap")
+    for r in res["rows"]:
+        e = r["equivalence"]
+        lo, hi = e["relative_ci90"]
+        print(f"    hash {r['hash_size']:3d}   {e['delta']:+.4f} absolute   "
+              f"[{lo:+.1%}, {hi:+.1%}] relative   "
+              f"equivalent within {e['equivalence_margin']:.1%}")
+    print("\n  sensitivity: does the protocol see a difference that is there?")
     for r in res["rows"]:
         se = r["sensitivity"]
-        print(f"    hash {r['hash_size']:3d}   {r['min_detectable_effect']:5.1%} relative"
-              f"   (balanced fan-out z = {se['balanced']['z']:+5.2f},"
-              f" wrecked z = {se['degenerate']['z']:+8.2f})")
+        print(f"    hash {r['hash_size']:3d}   balanced fan-out z = {se['balanced']['z']:+5.2f}"
+              f"   wrecked z = {se['degenerate']['z']:+8.2f}"
+              f"   (2-sigma resolution {r['min_detectable_effect']:.1%})")
     zs = [r["z_vs_strict_null"] for r in res["rows"]]
     arch = np.mean([r["real"] / max(1e-9, r["gaussian_lsh"]["mean"]) for r in res["rows"]])
-    mde = max(r["min_detectable_effect"] for r in res["rows"])
+    marg = min(r["equivalence"]["equivalence_margin"] for r in res["rows"])
     print(f"\n  architecture beats classical LSH by {arch:.1f}x.")
     print(f"  measured wiring vs degree-matched random: z in "
-          f"[{min(zs):+.2f}, {max(zs):+.2f}] -> "
-          f"{'no advantage' if max(zs) < 2 else 'advantage'}; "
-          f"any true advantage is below {mde:.1%}.")
+          f"[{min(zs):+.2f}, {max(zs):+.2f}]; equivalent to the null "
+          f"within {marg:.1%} at the tightest hash size.")
 
 
 # --------------------------------------------------------------------------- figure
@@ -501,34 +562,34 @@ def figure(res: dict, path) -> None:
     ax1.grid(axis="y", color="#e8e7e2", lw=0.8)
     ax1.set_axisbelow(True)
 
-    z_real = [r["z_vs_strict_null"] for r in rows]
-    z_bal = [r["sensitivity"]["balanced"]["z"] for r in rows]
-    ax2.axhspan(-2, 2, color="#eeeeea", zorder=0)
-    # Quote the tightest resolution, which is the bound the claim rests on.
-    best = min(r["min_detectable_effect"] for r in rows)
-    worst = max(r["min_detectable_effect"] for r in rows)
-    ax2.annotate("indistinguishable from random\n"
-                 f"(resolves {best:.1%}\u2013{worst:.1%} at 2\u03c3)",
-                 (sizes[0], -0.35), xytext=(2, 0),
+    # Panel B: the effect size with its bootstrap interval, which is what the
+    # equivalence claim rests on. A z-score alone would not show the interval.
+    rel = [100 * r["equivalence"]["delta"] / r["shuffle_both"]["mean"] for r in rows]
+    lo = [100 * r["equivalence"]["relative_ci90"][0] for r in rows]
+    hi = [100 * r["equivalence"]["relative_ci90"][1] for r in rows]
+    err = np.vstack([np.array(rel) - np.array(lo), np.array(hi) - np.array(rel)])
+
+    ax2.axhspan(-3, 3, color="#eeeeea", zorder=0)
+    ax2.annotate("within 3% of the null", (sizes[0], 2.4), xytext=(2, 0),
                  textcoords="offset points", color=_MUTED, fontsize=8)
-    ax2.axhline(0, color="#c9c8c3", lw=1)
-    for label, y, colour in [("fly wiring", z_real, _BLUE),
-                             ("balanced fan-out", z_bal, _AQUA)]:
-        ax2.plot(sizes, y, "-", color=colour, lw=2, marker="o", ms=5,
-                 markeredgecolor=_SURFACE, markeredgewidth=1.2)
-        ax2.annotate(label, (sizes[-1], y[-1]), xytext=(6, 0),
-                     textcoords="offset points", color=colour, fontsize=9,
-                     va="center", fontweight="medium")
+    ax2.axhline(0, color="#9a9992", lw=1.2, zorder=1)
+    ax2.errorbar(sizes, rel, yerr=err, fmt="o-", color=_BLUE, lw=2, ms=5,
+                 capsize=3, markeredgecolor=_SURFACE, markeredgewidth=1.2,
+                 zorder=3, label="fly wiring, 90% CI")
+    ax2.annotate("fly wiring", (sizes[-1], rel[-1]), xytext=(6, -2),
+                 textcoords="offset points", color=_BLUE, fontsize=9,
+                 va="center", fontweight="medium")
     worst = min(r["sensitivity"]["degenerate"]["z"] for r in rows)
-    ax2.annotate(f"wrecked wiring: z = {worst:.0f}, off scale", (sizes[0], -3.4),
-                 xytext=(2, 0), textcoords="offset points", color=_MUTED, fontsize=7.5)
+    ax2.annotate(f"wrecked wiring lies at z = {worst:.0f}, far off scale",
+                 (sizes[0], -7.2), xytext=(2, 0), textcoords="offset points",
+                 color=_MUTED, fontsize=8)
     ax2.set_xscale("log", base=2)
     ax2.set_xticks(sizes); ax2.set_xticklabels(sizes)
     ax2.set_xlabel("hash size (Kenyon cells kept)")
-    ax2.set_ylabel("z vs degree-matched null")
+    ax2.set_ylabel("retrieval vs degree-matched null (%)")
     ax2.set_title("The wiring does not", color=_INK, fontsize=11, loc="left")
-    ax2.set_xlim(sizes[0] * 0.9, sizes[-1] * 2.9)
-    ax2.set_ylim(-4, 4)
+    ax2.set_xlim(sizes[0] * 0.88, sizes[-1] * 1.35)
+    ax2.set_ylim(-8, 5)
     ax2.grid(axis="y", color="#e8e7e2", lw=0.8)
     ax2.set_axisbelow(True)
 
