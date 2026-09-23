@@ -1,0 +1,400 @@
+{
+ "marks": [
+  0,
+  0.25,
+  0.5,
+  1,
+  2,
+  3,
+  5,
+  10,
+  20,
+  30,
+  50,
+  100
+ ],
+ "chains": [
+  [
+   {
+    "sweeps": 0.0,
+    "jaccard_to_real": 1.0,
+    "cooccurrence_q": 444286.0,
+    "map": 0.4062508630952381
+   },
+   {
+    "sweeps": 0.250272034820457,
+    "jaccard_to_real": 0.7120154105465928,
+    "cooccurrence_q": 432288.0,
+    "map": null
+   },
+   {
+    "sweeps": 0.5,
+    "jaccard_to_real": 0.54296875,
+    "cooccurrence_q": 426452.0,
+    "map": null
+   },
+   {
+    "sweeps": 1.0,
+    "jaccard_to_real": 0.3394875659382065,
+    "cooccurrence_q": 430116.0,
+    "map": 0.4086234027777778
+   },
+   {
+    "sweeps": 2.0,
+    "jaccard_to_real": 0.18263473053892215,
+    "cooccurrence_q": 426716.0,
+    "map": null
+   },
+   {
+    "sweeps": 3.0,
+    "jaccard_to_real": 0.12705080447015932,
+    "cooccurrence_q": 430074.0,
+    "map": null
+   },
+   {
+    "sweeps": 5.0,
+    "jaccard_to_real": 0.09603823030676738,
+    "cooccurrence_q": 426250.0,
+    "map": 0.41290750992063485
+   },
+   {
+    "sweeps": 10.0,
+    "jaccard_to_real": 0.09124395671859412,
+    "cooccurrence_q": 427524.0,
+    "map": null
+   },
+   {
+    "sweeps": 20.0,
+    "jaccard_to_real": 0.08375885984299977,
+    "cooccurrence_q": 421048.0,
+    "map": null
+   },
+   {
+    "sweeps": 30.0,
+    "jaccard_to_real": 0.08857077241062543,
+    "cooccurrence_q": 420320.0,
+    "map": 0.4146564186507936
+   },
+   {
+    "sweeps": 50.0,
+    "jaccard_to_real": 0.09049079754601227,
+    "cooccurrence_q": 426628.0,
+    "map": null
+   },
+   {
+    "sweeps": 100.0,
+    "jaccard_to_real": 0.08384146341463415,
+    "cooccurrence_q": 430082.0,
+    "map": 0.406562123015873
+   }
+  ],
+  [
+   {
+    "sweeps": 0.0,
+    "jaccard_to_real": 1.0,
+    "cooccurrence_q": 444286.0,
+    "map": 0.4062508630952381
+   },
+   {
+    "sweeps": 0.250272034820457,
+    "jaccard_to_real": 0.7301374863122034,
+    "cooccurrence_q": 434022.0,
+    "map": null
+   },
+   {
+    "sweeps": 0.5,
+    "jaccard_to_real": 0.5434711820253989,
+    "cooccurrence_q": 423386.0,
+    "map": null
+   },
+   {
+    "sweeps": 1.0,
+    "jaccard_to_real": 0.3353366513287633,
+    "cooccurrence_q": 422552.0,
+    "map": 0.41278718253968255
+   },
+   {
+    "sweeps": 2.0,
+    "jaccard_to_real": 0.1846051316227924,
+    "cooccurrence_q": 429788.0,
+    "map": null
+   },
+   {
+    "sweeps": 3.0,
+    "jaccard_to_real": 0.13198535265085176,
+    "cooccurrence_q": 432620.0,
+    "map": null
+   },
+   {
+    "sweeps": 5.0,
+    "jaccard_to_real": 0.09739157277357617,
+    "cooccurrence_q": 429544.0,
+    "map": 0.4173335615079365
+   },
+   {
+    "sweeps": 10.0,
+    "jaccard_to_real": 0.08873746267513972,
+    "cooccurrence_q": 429328.0,
+    "map": null
+   },
+   {
+    "sweeps": 20.0,
+    "jaccard_to_real": 0.08384146341463415,
+    "cooccurrence_q": 428896.0,
+    "map": null
+   },
+   {
+    "sweeps": 30.0,
+    "jaccard_to_real": 0.0888208269525268,
+    "cooccurrence_q": 424340.0,
+    "map": 0.4141168055555555
+   },
+   {
+    "sweeps": 50.0,
+    "jaccard_to_real": 0.08657446320776344,
+    "cooccurrence_q": 428028.0,
+    "map": null
+   },
+   {
+    "sweeps": 100.0,
+    "jaccard_to_real": 0.08840413318025259,
+    "cooccurrence_q": 425410.0,
+    "map": 0.41226643849206346
+   }
+  ],
+  [
+   {
+    "sweeps": 0.0,
+    "jaccard_to_real": 1.0,
+    "cooccurrence_q": 444286.0,
+    "map": 0.4062508630952381
+   },
+   {
+    "sweeps": 0.250272034820457,
+    "jaccard_to_real": 0.7165620473201352,
+    "cooccurrence_q": 433680.0,
+    "map": null
+   },
+   {
+    "sweeps": 0.5,
+    "jaccard_to_real": 0.5384615384615384,
+    "cooccurrence_q": 427980.0,
+    "map": null
+   },
+   {
+    "sweeps": 1.0,
+    "jaccard_to_real": 0.3386049138661395,
+    "cooccurrence_q": 422428.0,
+    "map": 0.41204298611111106
+   },
+   {
+    "sweeps": 2.0,
+    "jaccard_to_real": 0.17783483806841713,
+    "cooccurrence_q": 425600.0,
+    "map": null
+   },
+   {
+    "sweeps": 3.0,
+    "jaccard_to_real": 0.12508901020650368,
+    "cooccurrence_q": 428748.0,
+    "map": null
+   },
+   {
+    "sweeps": 5.0,
+    "jaccard_to_real": 0.09595375722543352,
+    "cooccurrence_q": 430994.0,
+    "map": 0.41484288690476195
+   },
+   {
+    "sweeps": 10.0,
+    "jaccard_to_real": 0.08524765320918874,
+    "cooccurrence_q": 427574.0,
+    "map": null
+   },
+   {
+    "sweeps": 20.0,
+    "jaccard_to_real": 0.0894882010419859,
+    "cooccurrence_q": 427478.0,
+    "map": null
+   },
+   {
+    "sweeps": 30.0,
+    "jaccard_to_real": 0.08915441176470588,
+    "cooccurrence_q": 426424.0,
+    "map": 0.40869820436507937
+   },
+   {
+    "sweeps": 50.0,
+    "jaccard_to_real": 0.08732222052301575,
+    "cooccurrence_q": 427174.0,
+    "map": null
+   },
+   {
+    "sweeps": 100.0,
+    "jaccard_to_real": 0.09124395671859412,
+    "cooccurrence_q": 427434.0,
+    "map": 0.42329527777777776
+   }
+  ],
+  [
+   {
+    "sweeps": 0.0,
+    "jaccard_to_real": 1.0,
+    "cooccurrence_q": 444286.0,
+    "map": 0.4062508630952381
+   },
+   {
+    "sweeps": 0.250272034820457,
+    "jaccard_to_real": 0.7091346153846154,
+    "cooccurrence_q": 436474.0,
+    "map": null
+   },
+   {
+    "sweeps": 0.5,
+    "jaccard_to_real": 0.5319974143503555,
+    "cooccurrence_q": 429472.0,
+    "map": null
+   },
+   {
+    "sweeps": 1.0,
+    "jaccard_to_real": 0.3391091439871928,
+    "cooccurrence_q": 429762.0,
+    "map": 0.4181858928571429
+   },
+   {
+    "sweeps": 2.0,
+    "jaccard_to_real": 0.18076891140081375,
+    "cooccurrence_q": 430706.0,
+    "map": null
+   },
+   {
+    "sweeps": 3.0,
+    "jaccard_to_real": 0.12198201041502288,
+    "cooccurrence_q": 431878.0,
+    "map": null
+   },
+   {
+    "sweeps": 5.0,
+    "jaccard_to_real": 0.09107649812015653,
+    "cooccurrence_q": 427794.0,
+    "map": 0.4172773412698413
+   },
+   {
+    "sweeps": 10.0,
+    "jaccard_to_real": 0.0875717017208413,
+    "cooccurrence_q": 430922.0,
+    "map": null
+   },
+   {
+    "sweeps": 20.0,
+    "jaccard_to_real": 0.085993584848022,
+    "cooccurrence_q": 424316.0,
+    "map": null
+   },
+   {
+    "sweeps": 30.0,
+    "jaccard_to_real": 0.08557905183601802,
+    "cooccurrence_q": 426784.0,
+    "map": 0.41246230158730157
+   },
+   {
+    "sweeps": 50.0,
+    "jaccard_to_real": 0.08782129742962057,
+    "cooccurrence_q": 426752.0,
+    "map": null
+   },
+   {
+    "sweeps": 100.0,
+    "jaccard_to_real": 0.08823754496058774,
+    "cooccurrence_q": 434254.0,
+    "map": 0.41199880952380946
+   }
+  ],
+  [
+   {
+    "sweeps": 0.0,
+    "jaccard_to_real": 1.0,
+    "cooccurrence_q": 444286.0,
+    "map": 0.4062508630952381
+   },
+   {
+    "sweeps": 0.250272034820457,
+    "jaccard_to_real": 0.703197987782968,
+    "cooccurrence_q": 437696.0,
+    "map": null
+   },
+   {
+    "sweeps": 0.5,
+    "jaccard_to_real": 0.5305134000645786,
+    "cooccurrence_q": 439410.0,
+    "map": null
+   },
+   {
+    "sweeps": 1.0,
+    "jaccard_to_real": 0.3352112676056338,
+    "cooccurrence_q": 436394.0,
+    "map": 0.41258487103174607
+   },
+   {
+    "sweeps": 2.0,
+    "jaccard_to_real": 0.17832283725555187,
+    "cooccurrence_q": 426916.0,
+    "map": null
+   },
+   {
+    "sweeps": 3.0,
+    "jaccard_to_real": 0.12964728312678742,
+    "cooccurrence_q": 430644.0,
+    "map": null
+   },
+   {
+    "sweeps": 5.0,
+    "jaccard_to_real": 0.09951287404314545,
+    "cooccurrence_q": 425668.0,
+    "map": 0.40737375992063496
+   },
+   {
+    "sweeps": 10.0,
+    "jaccard_to_real": 0.08649144254278729,
+    "cooccurrence_q": 427776.0,
+    "map": null
+   },
+   {
+    "sweeps": 20.0,
+    "jaccard_to_real": 0.08840413318025259,
+    "cooccurrence_q": 428956.0,
+    "map": null
+   },
+   {
+    "sweeps": 30.0,
+    "jaccard_to_real": 0.0862424566496066,
+    "cooccurrence_q": 426624.0,
+    "map": 0.420932619047619
+   },
+   {
+    "sweeps": 50.0,
+    "jaccard_to_real": 0.0875717017208413,
+    "cooccurrence_q": 428232.0,
+    "map": null
+   },
+   {
+    "sweeps": 100.0,
+    "jaccard_to_real": 0.08674054260603745,
+    "cooccurrence_q": 422848.0,
+    "map": 0.41598945436507934
+   }
+  ]
+ ],
+ "pool_q_mean": 428281.4,
+ "pool_q_sd": 3652.2197339323143,
+ "real_q": 444286.0,
+ "real_q_test": {
+  "B": 200,
+  "p_upper": 0.004975124378109453,
+  "p_lower": 1.0,
+  "p_two_sided": 0.009950248756218905,
+  "rank_from_top": 1
+ },
+ "pool_jaccard_mean": 0.08805625931719788,
+ "seconds": 18.499146938323975
+}

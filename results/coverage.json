@@ -1,0 +1,26 @@
+{
+ "theta_relative": -0.014504368732668497,
+ "nominal": 0.9,
+ "datasets": 100,
+ "R": 100,
+ "B_sub": 10,
+ "n_items": 600,
+ "k": 92,
+ "two_stage": {
+  "coverage": 1.0,
+  "wilson95": [
+   0.9630051925239981,
+   0.9999999999999999
+  ],
+  "median_width": 0.04218277297284148
+ },
+ "superseded_group_bootstrap": {
+  "coverage": 0.87,
+  "wilson95": [
+   0.7901947810519012,
+   0.9224290614158575
+  ],
+  "median_width": 0.04170692745537123
+ },
+ "seconds": 4098.907505273819
+}

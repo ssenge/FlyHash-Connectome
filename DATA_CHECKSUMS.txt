@@ -1,0 +1,10 @@
+# SHA-256 of every input file (local name). Verify: python -m flypath checksums
+# MaleCNS v1.0: https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/
+# DoOR 2.0 at commit db323a496577c4b4a72b5c2fcd1859e07521ffb5: https://raw.githubusercontent.com/ropensci/DoOR.data/db323a496577c4b4a72b5c2fcd1859e07521ffb5/data/ (door_odor.csv is odor.csv upstream;
+# it only supplies the odorant names shown in the web demo)
+e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1  connectome-weights-male-cns-v1.0-minconf-0.5.feather
+2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2  body-annotations-male-cns-v1.0-minconf-0.5.feather
+95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621  body-neurotransmitters-male-cns-v1.0.feather
+bc2aa5414ff54d3a1399f5fe171e154bcadc754bcf323a3c27711a54f70848e2  door_response_matrix.csv
+1197c492e769b1b587c907c5b750ffa2507d7e6c9fe9dfcb2ee8603871e00912  door_mappings.csv
+a31d1841cf90ce23ec149760a5efa38eae02de7820bb2300c3a7dba221745940  door_odor.csv

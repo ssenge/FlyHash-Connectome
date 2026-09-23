@@ -1,6 +1,7 @@
-"""Command line: build the connectome graph, then run the hashing experiment.
+"""flypath: the fly hashing algorithm on measured mushroom body wiring.
 
-Subcommand modules import lazily so that --help works before a build.
+Every figure, table and number in the paper is regenerated from results/*.json
+by `flypath report`; nothing is typed in by hand.
 """
 
 from __future__ import annotations
@@ -12,30 +13,26 @@ import sys
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="flypath", description=__doc__.splitlines()[0])
-    p.add_argument("--config",
-                   help="a YAML config overriding config.example.yaml")
+    p.add_argument("--config", help="a YAML config overriding config.example.yaml")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("build", help="download the MaleCNS data and build the graph")
 
-    fh = sub.add_parser(
-        "flyhash", help="is the mushroom body a better hash than chance?")
-    fh.add_argument("--side", choices=["R", "L"], default="R",
-                    help="which hemisphere's mushroom body to use")
-    fh.add_argument("--dataset", choices=["mixtures", "odours", "synthetic"],
-                    default="mixtures",
-                    help="odours: the ~172 measured odorants, which is real but "
-                         "underpowered. mixtures: blends of them, enough items to "
-                         "resolve a few-percent effect.")
-    fh.add_argument("--items", type=int, default=4000)
-    fh.add_argument("--seeds", type=int, default=20,
-                    help="random matrices drawn per control")
-    fh.add_argument("--neighbours", type=int, default=10)
-    fh.add_argument("--weighted", action="store_true",
-                    help="use synapse counts instead of binary connections")
-    fh.add_argument("--json", action="store_true")
-    fh.add_argument("--save", action="store_true",
-                    help="write results/flyhash.json and results/flyhash.png")
+    a = sub.add_parser("analyse", help="primary analysis, architecture comparison, "
+                                       "curveball diagnostics (~45 min)")
+    a.add_argument("--nulls", type=int, default=200)
+    a.add_argument("--bootstrap", type=int, default=200)
+    a.add_argument("--skip-primary", action="store_true")
+
+    r = sub.add_parser("robustness", help="one-factor-at-a-time sensitivity grid (~35 min)")
+    r.add_argument("--nulls", type=int, default=40)
+    r.add_argument("--only", help="comma-separated condition ids")
+
+    c = sub.add_parser("coverage", help="coverage of the bootstrap interval (~30 min)")
+    c.add_argument("--datasets", type=int, default=100)
+
+    sub.add_parser("report", help="regenerate figure, LaTeX numbers, README block")
+    sub.add_parser("checksums", help="verify input data against DATA_CHECKSUMS.txt")
 
     args = p.parse_args(argv)
 
@@ -47,24 +44,35 @@ def main(argv: list[str] | None = None) -> int:
         data.build(cfg)
         return 0
 
-    if args.cmd == "flyhash":
-        from . import data, flyhash
-        res = flyhash.experiment(data.load_graph(cfg), cfg, side=args.side,
-                                 dataset=args.dataset, seeds=args.seeds,
-                                 neighbours=args.neighbours,
-                                 weighted=args.weighted, n_items=args.items)
-        if args.json:
-            print(json.dumps(res, indent=2))
-        else:
-            flyhash.print_experiment(res)
-        if args.save:
-            from .config import ROOT
-            out = ROOT / "results"
-            out.mkdir(parents=True, exist_ok=True)
-            (out / "flyhash.json").write_text(json.dumps(res, indent=2))
-            flyhash.figure(res, out / "flyhash.png")
-            print(f"\n  wrote {out}/flyhash.json and flyhash.png")
+    if args.cmd == "analyse":
+        from . import experiments as ex
+        if not args.skip_primary:
+            ex.primary(cfg, B=args.nulls, R=args.bootstrap)
+        ex.architecture(cfg)
+        ex.convergence(cfg)
         return 0
+
+    if args.cmd == "robustness":
+        from . import experiments as ex
+        ex.robustness(cfg, B=args.nulls,
+                      only=args.only.split(",") if args.only else None)
+        return 0
+
+    if args.cmd == "coverage":
+        from . import experiments as ex
+        ex.coverage(cfg, datasets=args.datasets)
+        return 0
+
+    if args.cmd == "report":
+        from . import report
+        report.build_all()
+        return 0
+
+    if args.cmd == "checksums":
+        from . import report
+        ok = report.verify_checksums(cfg)
+        print("all input files match" if ok else "MISMATCH, see above")
+        return 0 if ok else 1
 
     return 1
 
