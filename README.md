@@ -16,6 +16,17 @@ It does not.
 
 ![result](results/flyhash.png)
 
+## Try it
+
+**[Interactive demo](https://ssenge.github.io/FlyHash-Connectome/web/mushroom-body-hash.html)**
+— the algorithm running in your browser on the measured wiring. Pick an odour and
+watch 35 glomeruli drive 1,838 Kenyon cells; the loudest few fire, and that
+firing set is the tag.
+
+Then switch the wiring from **Real fly** to **Scrambled**. Almost every cell in
+the tag changes, and the odours it retrieves barely move. That is this
+repository's result, without the tables.
+
 ## The finding
 
 Against a configuration-model null that preserves both degree sequences and
@@ -150,8 +161,7 @@ Stated plainly, because they bound the claim.
 ## Layout
 
 ```
-web/mushroom-body-hash.html   an interactive demo: run the real wiring, then
-                              scramble it and watch retrieval barely move
+web/mushroom-body-hash.html   the interactive demo above, self-contained
 paper/flyhash.tex       the write-up (IEEE conference format, 4 pages)
 flypath/flyhash.py      the experiment: wiring, controls, hash, scoring, figure
 flypath/data.py         builds the connectome graph from the MaleCNS release
