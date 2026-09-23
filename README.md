@@ -150,6 +150,8 @@ Stated plainly, because they bound the claim.
 ## Layout
 
 ```
+web/mushroom-body-hash.html   an interactive demo: run the real wiring, then
+                              scramble it and watch retrieval barely move
 paper/flyhash.tex       the write-up (IEEE conference format, 4 pages)
 flypath/flyhash.py      the experiment: wiring, controls, hash, scoring, figure
 flypath/data.py         builds the connectome graph from the MaleCNS release
