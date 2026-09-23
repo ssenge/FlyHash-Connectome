@@ -154,7 +154,7 @@ def test_storage_bits_exact():
 
 
 def test_computation_bits(proj):
-    assert fh.computation_bits(proj) == round(proj.nnz / proj.matrix.shape[0])
+    assert fh.computation_bits(proj) == round(proj.nnz / (2 * proj.matrix.shape[0]))
 
 
 # ------------------------------------------------------------------ retrieval

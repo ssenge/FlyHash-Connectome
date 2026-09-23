@@ -31,6 +31,13 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("coverage", help="coverage of the bootstrap interval (~30 min)")
     c.add_argument("--datasets", type=int, default=100)
 
+    b = sub.add_parser("replicate", help="the 2017 benchmarks (SIFT, GloVe, MNIST): random "
+                                         "matrices, then the measured wiring (~3 h)")
+    b.add_argument("--trials", type=int, default=50)
+    b.add_argument("--connectome-trials", type=int, default=20)
+    b.add_argument("--nulls", type=int, default=50)
+    b.add_argument("--skip-random", action="store_true")
+
     sub.add_parser("report", help="regenerate figure, LaTeX numbers, README block")
     sub.add_parser("checksums", help="verify input data against DATA_CHECKSUMS.txt")
 
@@ -61,6 +68,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "coverage":
         from . import experiments as ex
         ex.coverage(cfg, datasets=args.datasets)
+        return 0
+
+    if args.cmd == "replicate":
+        from . import replication as rp
+        if not args.skip_random:
+            rp.replicate(cfg, trials=args.trials)
+        rp.connectome(cfg, trials=args.connectome_trials, B=args.nulls)
         return 0
 
     if args.cmd == "report":

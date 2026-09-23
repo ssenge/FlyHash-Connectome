@@ -446,11 +446,12 @@ def storage_bits(m: int, k: int) -> int:
 
 
 def computation_bits(p: Projection) -> int:
-    """Gaussian code length with the same number of input-weight operations
-    per item as the fly expansion: nnz(M) additions versus bits x d
-    multiply-adds. Normalisation, winner selection and thresholding are
-    excluded from both sides."""
-    return max(1, int(round(p.nnz / p.matrix.shape[0])))
+    """Gaussian code length with the same operation count per item as the fly
+    expansion, counted as Dasgupta et al. (2017, Fig. 1C) count it: nnz(M)
+    additions for the fly, d multiplications plus d additions per Gaussian
+    projection. Normalisation, winner selection and thresholding are excluded
+    from both sides."""
+    return max(1, int(round(p.nnz / (2 * p.matrix.shape[0]))))
 
 
 # --------------------------------------------------------------------------- scoring

@@ -63,7 +63,7 @@ def figure(pr: dict, ar: dict, path: Path) -> None:
     lines = [("fly hash (measured wiring)", m["fly"], _BLUE, "-", "o"),
              ("Gaussian, k bits", g["k_bits"]["mean"], _VIOLET, "-", "s"),
              ("Gaussian, storage-matched", g["storage_matched"]["mean"], _VIOLET, "--", "^"),
-             ("Gaussian, computation-matched", g["computation_matched"]["mean"], _VIOLET, ":", "v")]
+             ("Gaussian, operation-matched", g["computation_matched"]["mean"], _VIOLET, ":", "v")]
     for label, y, c, ls, mk in lines:
         a1.plot(ks, y, ls, color=c, lw=1.8, marker=mk, ms=4.5,
                 markeredgecolor=_SURFACE, markeredgewidth=0.8, label=label)
@@ -239,6 +239,7 @@ def latex(pr, ar, cv, rb, co) -> str:
                ("$\\geq$5-synapse threshold", ["synapse_threshold_5"]),
                ("Missing data (3 imputations)", ["missing_glomerulus_mean", "missing_odour_mean", "missing_lowrank"]),
                ("Coverage thresholds (2)", ["coverage_strict", "coverage_loose"]),
+               ("All 46 glomeruli with data, imputed", ["all_glomeruli"]),
                ("Mixture seeds (4)", ["mixture_seed_1", "mixture_seed_2", "mixture_seed_3", "mixture_seed_4"]),
                ("Mixture size 2 / 2--10", ["mixtures_pairs", "mixtures_wide"]),
                ("Measured odorants only", ["measured_only"]),
@@ -260,7 +261,124 @@ def latex(pr, ar, cv, rb, co) -> str:
             p = lo_p if lo_p == hi_p else f"{lo_p}--{hi_p}"
             rt.append(f"{label} & {rel} & {p} \\\\")
         mac.append("\\newcommand{\\RobRows}{" + "\n".join(rt) + "}")
+    mac += _benchmark_macros(_load("replication.json"), _load("connectome_benchmarks.json"))
     return "\n".join(mac) + "\n"
+
+
+_NAMES = {"sift": "SIFT", "glove": "GloVe", "mnist": "MNIST"}
+
+
+def _benchmark_macros(rp, cb) -> list[str]:
+    """The 2017 benchmarks: replication with random matrices (ReplRows) and
+    the measured wiring on the same data (ConnRows)."""
+    mac = []
+    if rp:
+        ks = rp["protocol"]["hash_lengths"]
+        rows = []
+        for name, r in rp["datasets"].items():
+            for k in (4, 16):
+                i = ks.index(k)
+                f = {key: r[key]["map"]["mean"][i] for key in ("lsh", "random_20k", "fly_20k", "fly_10d")}
+                rows.append(f"{_NAMES[name]} & {k} & {f['lsh']:.3f} & {f['random_20k']:.3f} & "
+                            f"{f['fly_20k']:.3f} & {f['fly_10d']:.3f} & "
+                            f"{f['fly_10d'] / f['lsh']:.1f}$\\times$ \\\\")
+        mac.append("\\newcommand{\\ReplRows}{" + "\n".join(rows) + "}")
+        i4 = ks.index(4)
+        mn, sf = rp["datasets"].get("mnist"), rp["datasets"].get("sift")
+        if mn:
+            lsh, fly = mn["lsh"]["map"]["mean"][i4], mn["fly_10d"]["map"]["mean"][i4]
+            mac += [_mac("ReplMnistLsh", f"{lsh:.3f}"), _mac("ReplMnistFly", f"{fly:.3f}"),
+                    _mac("ReplMnistRatio", f"{fly / lsh:.1f}"),
+                    _mac("ReplOpsBitsMnist", mn["lsh_ops_10d_bits"])]
+        if sf:
+            mac += [_mac("ReplSiftRandom", f"{sf['random_20k']['map']['mean'][i4]:.3f}"),
+                    _mac("ReplSiftWta", f"{sf['fly_20k']['map']['mean'][i4]:.3f}")]
+        ops = [r["lsh_ops_10d"]["map"]["mean"] for r in rp["datasets"].values()]
+        fly32 = [r["fly_10d"]["map"]["mean"][ks.index(32)] for r in rp["datasets"].values()]
+        mac += [_mac("ReplTrials", rp["protocol"]["trials"]),
+                _mac("ReplOpsMin", f"{min(ops):.2f}"), _mac("ReplOpsMax", f"{max(ops):.2f}"),
+                _mac("ReplFlyMax", f"{max(fly32):.2f}")]
+    if cb:
+        big = max(cb["sizes"])
+        rows = []
+        for name, per in cb["datasets"].items():
+            for r in per["map"]["rows"]:
+                if r["k"] in (4, 16, big):
+                    rows.append(f"{_NAMES[name]} & {r['k']} & {r['real']:.3f} & {r['null_mean']:.3f} & "
+                                f"{pct(r['relative_difference'], 1)} & {pval(r['p_two_sided'])} & "
+                                f"{r['random_2017']:.3f} & {r['lsh']:.3f} \\\\")
+        mac.append("\\newcommand{\\ConnRows}{" + "\n".join(rows) + "}")
+        allr = [r for per in cb["datasets"].values() for r in per["map"]["rows"]]
+        ops = [per["map"]["lsh_ops"] for per in cb["datasets"].values()]
+        flybig = [next(r for r in per["map"]["rows"] if r["k"] == big)["real"]
+                  for per in cb["datasets"].values()]
+        mac += [_mac("ConnB", cb["B"]), _mac("ConnTrials", cb["trials"]),
+                _mac("ConnGlom", cb["n_glomeruli"]),
+                _mac("ConnCells", f"{cb['n_cells']:,}".replace(",", "{,}")),
+                _mac("ConnBigK", big),
+                _mac("ConnRelMin", f"{pct(min(r['relative_difference'] for r in allr), 1)}\\%"),
+                _mac("ConnRelMax", f"{pct(max(r['relative_difference'] for r in allr), 1)}\\%"),
+                _mac("ConnPMin", pval(min(r["p_two_sided"] for r in allr))),
+                _mac("ConnNSig", sum(r["p_two_sided"] < 0.05 for r in allr)),
+                _mac("ConnNTests", len(allr)),
+                _mac("ConnOpsBits", cb["lsh_ops_matched_bits"]),
+                _mac("ConnOpsMin", f"{min(ops):.2f}"), _mac("ConnOpsMax", f"{max(ops):.2f}"),
+                _mac("ConnFlyBigMin", f"{min(flybig):.2f}"), _mac("ConnFlyBigMax", f"{max(flybig):.2f}"),
+                _mac("ConnRandGainMax", f"{100 * max(r['random_2017'] / r['real'] - 1 for r in allr):.0f}\\%")]
+        mn = cb["datasets"].get("mnist")
+        if mn:
+            r4 = next(r for r in mn["map"]["rows"] if r["k"] == 4)
+            mac += [_mac("ConnMnistReal", f"{r4['real']:.3f}"), _mac("ConnMnistLsh", f"{r4['lsh']:.3f}"),
+                    _mac("ConnMnistRatio", f"{r4['real'] / r4['lsh']:.1f}")]
+    return mac
+
+
+def _benchmark_supplement(rp, cb) -> list[str]:
+    L = []
+    if rp:
+        pc = rp["protocol"]
+        L += ["## The 2017 benchmarks with random matrices (replication)", "",
+              f"{pc['n']} vectors per dataset, {pc['queries']} queries, top {100 * pc['top']:.0f}% "
+              f"neighbours, {pc['trials']} trials; each Kenyon cell samples {100 * pc['sampling']:.0f}% "
+              "of the inputs. Mean (SD over trials). Reported in the 2017 paper: MNIST k=4 LSH 0.160, "
+              "fly (m=10d) 0.448; SIFT k=4 random selection 0.177, WTA (m=20k) 0.324.", ""]
+        for met, title in (("map", "mean average precision (standard definition)"),
+                           ("overlap", "list overlap (FlyLSH reference code)")):
+            L += [f"### {title}", "",
+                  "| dataset | k | LSH | sign LSH | random 20k | fly 20k | fly 10d |",
+                  "|---|---|---|---|---|---|---|"]
+            for name, r in rp["datasets"].items():
+                for i, k in enumerate(pc["hash_lengths"]):
+                    c = {key: f"{r[key][met]['mean'][i]:.3f} ({r[key][met]['sd'][i]:.3f})"
+                         for key in ("lsh", "lsh_sign", "random_20k", "fly_20k", "fly_10d")}
+                    L.append(f"| {_NAMES[name]} | {k} | {c['lsh']} | {c['lsh_sign']} | "
+                             f"{c['random_20k']} | {c['fly_20k']} | {c['fly_10d']} |")
+            L += ["", "LSH given the operation count of the m = 10d fly (10d cells x 0.1d additions "
+                      "= 2d operations x d/2 projections):", ""]
+            for name, r in rp["datasets"].items():
+                L.append(f"- {_NAMES[name]}: {r['lsh_ops_10d_bits']} projections, "
+                         f"{r['lsh_ops_10d'][met]['mean']:.3f} ({r['lsh_ops_10d'][met]['sd']:.3f})")
+            L.append("")
+    if cb:
+        L += ["## The measured wiring on the 2017 benchmarks", "",
+              f"Each dataset reduced by PCA to {cb['n_glomeruli']} components (one per glomerulus, "
+              f"assigned at random in each trial); {cb['n_cells']} Kenyon cells, {cb['trials']} trials, "
+              f"{cb['B']} curveball nulls, each matrix's score averaged over trials. "
+              f"'2017 random': every cell samples 6 of the {cb['n_glomeruli']} glomeruli.", ""]
+        for met in ("map", "overlap"):
+            L += [f"### {met}", "",
+                  "| dataset | k | measured | null mean +/- SD | rel. diff. | p | 2017 random | LSH | sign LSH |",
+                  "|---|---|---|---|---|---|---|---|---|"]
+            for name, per in cb["datasets"].items():
+                for r in per[met]["rows"]:
+                    L.append(f"| {_NAMES[name]} | {r['k']} | {r['real']:.4f} | {r['null_mean']:.4f} +/- "
+                             f"{r['null_sd']:.4f} | {pct(r['relative_difference'], 2)}% | "
+                             f"{pval(r['p_two_sided'])} | {r['random_2017']:.4f} | {r['lsh']:.4f} | "
+                             f"{r['lsh_sign']:.4f} |")
+                L.append(f"| {_NAMES[name]} | LSH, matched operations ({cb['lsh_ops_matched_bits']} "
+                         f"projections) | {per[met]['lsh_ops']:.4f} | | | | | | |")
+            L.append("")
+    return L
 
 
 def _plateau(cv: dict, tol_sd: float = 3.0) -> str:
@@ -373,8 +491,11 @@ def supplement(pr, ar, cv, rb, co) -> str:
                          f"{g['computation_matched']['mean'][i]:.4f} ({g['computation_matched']['ratio_fly_over'][i]:.2f}x) |")
             L.append("")
         L += [f"Budgets (bits): k-bit = k; storage-matched = ceil(log2 C(m, k)); computation-matched = "
-              f"round(nnz / d) = {ar['budgets']['computation_matched'][str(pr['primary_k'])]}. "
+              f"round(nnz / 2d) = {ar['budgets']['computation_matched'][str(pr['primary_k'])]}, "
+              f"counting operations as Dasgupta et al. (2017) do (d multiplications plus d additions "
+              f"per Gaussian projection, one addition per non-zero of M). "
               f"Ratios are fly / Gaussian.", ""]
+    L += _benchmark_supplement(_load("replication.json"), _load("connectome_benchmarks.json"))
     return "\n".join(L)
 
 
@@ -406,8 +527,20 @@ def readme_block(pr, ar, rb, co) -> str:
                   f"{g['k_bits']['ratio_fly_over'][i]:.2f}x at k bits, "
                   f"{g['storage_matched']['ratio_fly_over'][i]:.2f}x at matched storage "
                   f"({ar['budgets']['storage_matched'][str(pr['primary_k'])]} bits), "
-                  f"{g['computation_matched']['ratio_fly_over'][i]:.2f}x at matched computation "
+                  f"{g['computation_matched']['ratio_fly_over'][i]:.2f}x at matched operations "
                   f"({ar['budgets']['computation_matched'][str(pr['primary_k'])]} bits)."]
+    rp, cb = _load("replication.json"), _load("connectome_benchmarks.json")
+    if rp and "mnist" in rp["datasets"]:
+        mn = rp["datasets"]["mnist"]
+        i4 = rp["protocol"]["hash_lengths"].index(4)
+        L += ["", f"2017 protocol with random matrices, MNIST, k = 4: LSH {mn['lsh']['map']['mean'][i4]:.3f} "
+                  f"(reported 0.160), fly hash {mn['fly_10d']['map']['mean'][i4]:.3f} (reported 0.448)."]
+    if cb:
+        allr = [r for per in cb["datasets"].values() for r in per["map"]["rows"]]
+        L += ["", f"Measured wiring on SIFT, GloVe and MNIST (PCA to {cb['n_glomeruli']} inputs): "
+                  f"{pct(min(r['relative_difference'] for r in allr), 1)}% to "
+                  f"{pct(max(r['relative_difference'] for r in allr), 1)}% relative to "
+                  f"{cb['B']} curveball nulls across {len(allr)} dataset-size combinations."]
     if co:
         L += ["", f"Coverage of the 90% interval in simulation: "
                   f"{100 * co['two_stage']['coverage']:.0f}% (previous procedure: "

@@ -8,3 +8,7 @@ e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1  connectome-wei
 bc2aa5414ff54d3a1399f5fe171e154bcadc754bcf323a3c27711a54f70848e2  door_response_matrix.csv
 1197c492e769b1b587c907c5b750ffa2507d7e6c9fe9dfcb2ee8603871e00912  door_mappings.csv
 a31d1841cf90ce23ec149760a5efa38eae02de7820bb2300c3a7dba221745940  door_odor.csv
+# 2017 benchmarks (flypath replicate): MNIST (Keras mirror), SIFT-small (INRIA TEXMEX), GloVe 6B (Stanford NLP)
+731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1  bench/mnist.npz
+b8f1e59b20319ac44279d5251706909dd3a5b8ca5ce2a11ddb1e73902252770e  bench/siftsmall.tar.gz
+617afb2fe6cbd085c235baf7a465b96f4112bd7f7ccb2b2cbd649fed9cbcf2fb  bench/glove.6B.zip

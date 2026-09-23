@@ -249,8 +249,8 @@ def architecture(cfg: Config, seeds: int = 20, log=print) -> dict:
                "storage_matched": {k: fh.storage_bits(m, k) for k in sizes},
                "computation_matched": {k: fh.computation_bits(p) for k in sizes}}
     out = {"budgets": {b: {str(k): v for k, v in d.items()} for b, d in budgets.items()},
-           "computation_model": "input-weight operations per item: nnz(M) additions "
-                                "for the fly expansion, bits x d multiply-adds for "
+           "computation_model": "the 2017 accounting: nnz(M) additions for the fly "
+                                "expansion; d multiplications plus d additions per "
                                 "Gaussian projection",
            "nnz": p.nnz, "d": int(p.matrix.shape[0]), "metrics": {}}
     for metric in ("euclidean", "normalised", "angular"):
@@ -332,6 +332,8 @@ CONDITIONS = [
      {"min_odours": 80, "min_glomeruli": 20}),
     ("coverage_loose", "glomeruli >= 20 odorants, odorants >= 12 glomeruli",
      {"min_odours": 20, "min_glomeruli": 12}),
+    ("all_glomeruli", "every glomerulus with DoOR data (46 of 51), unmeasured -> rank-5 imputation",
+     {"min_odours": 1, "missing": "lowrank"}),
     ("mixture_seed_1", "mixture seed 1", {"mix_seed": 1}),
     ("mixture_seed_2", "mixture seed 2", {"mix_seed": 2}),
     ("mixture_seed_3", "mixture seed 3", {"mix_seed": 3}),
@@ -369,7 +371,12 @@ def _items(kind: str, src: np.ndarray, seed: int, lo: int, hi: int) -> np.ndarra
 
 
 def robustness(cfg: Config, B: int = 40, only: list[str] | None = None, log=print) -> dict:
+    """With `only`, the listed conditions are recomputed and merged into the
+    existing results/robustness.json; the other rows are kept."""
     t0 = time.time()
+    path = ROOT / "results" / "robustness.json"
+    kept = json.loads(path.read_text())["rows"] if only and path.exists() else []
+    kept = [r for r in kept if r["id"] not in only] if only else []
     rows = []
     for cid, label, opt in CONDITIONS:
         if only and cid not in only:
@@ -413,7 +420,9 @@ def robustness(cfg: Config, B: int = 40, only: list[str] | None = None, log=prin
                      "per_k": per_k, "seconds": time.time() - ts})
         log(f"  {cid:24s} primary k: rel {per_k[sizes.index(primary_k(p))]['relative_difference']:+.4f}"
             f"  p {per_k[sizes.index(primary_k(p))]['p_two_sided']:.3f}   ({time.time() - ts:.0f}s)")
-        save({"B": B, "rows": rows, "seconds": time.time() - t0}, "robustness.json")
+        order = [c[0] for c in CONDITIONS]
+        merged = sorted(kept + rows, key=lambda r: order.index(r["id"]))
+        save({"B": B, "rows": merged, "seconds": time.time() - t0}, "robustness.json")
     return {"B": B, "rows": rows}
 
 

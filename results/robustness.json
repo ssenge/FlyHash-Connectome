@@ -562,6 +562,77 @@
    "seconds": 110.70108914375305
   },
   {
+   "id": "all_glomeruli",
+   "label": "every glomerulus with DoOR data (46 of 51), unmeasured -> rank-5 imputation",
+   "options": {
+    "min_odours": 1,
+    "missing": "lowrank"
+   },
+   "n_items": 4000,
+   "n_glomeruli": 46,
+   "n_cells": 1881,
+   "inputs_mean": 4.779904306220096,
+   "missing_fraction": 0.44362564480471633,
+   "per_k": [
+    {
+     "k": 8,
+     "primary": false,
+     "real": 0.1340572023809524,
+     "null_mean": 0.12940804637896824,
+     "null_sd": 0.009931735785299173,
+     "relative_difference": 0.03592632863314549,
+     "p_two_sided": 0.6829268292682927,
+     "p_lower": 0.6829268292682927,
+     "p_upper": 0.34146341463414637
+    },
+    {
+     "k": 16,
+     "primary": false,
+     "real": 0.22054713293650793,
+     "null_mean": 0.20884956448412698,
+     "null_sd": 0.011179238947565775,
+     "relative_difference": 0.05600954199389774,
+     "p_two_sided": 0.24390243902439024,
+     "p_lower": 0.9024390243902439,
+     "p_upper": 0.12195121951219512
+    },
+    {
+     "k": 32,
+     "primary": false,
+     "real": 0.28404368055555557,
+     "null_mean": 0.28108667137896826,
+     "null_sd": 0.007589358045582515,
+     "relative_difference": 0.010519919575270764,
+     "p_two_sided": 0.6341463414634146,
+     "p_lower": 0.7073170731707317,
+     "p_upper": 0.3170731707317073
+    },
+    {
+     "k": 64,
+     "primary": false,
+     "real": 0.3327947123015873,
+     "null_mean": 0.33401790079365085,
+     "null_sd": 0.005346820421599161,
+     "relative_difference": -0.0036620447262172284,
+     "p_two_sided": 0.6829268292682927,
+     "p_lower": 0.34146341463414637,
+     "p_upper": 0.6829268292682927
+    },
+    {
+     "k": 94,
+     "primary": true,
+     "real": 0.354997380952381,
+     "null_mean": 0.35504489484126983,
+     "null_sd": 0.004123960046397626,
+     "relative_difference": -0.0001338250164393262,
+     "p_two_sided": 1.0,
+     "p_lower": 0.5121951219512195,
+     "p_upper": 0.5121951219512195
+    }
+   ],
+   "seconds": 79.12160205841064
+  },
+  {
    "id": "mixture_seed_1",
    "label": "mixture seed 1",
    "options": {
@@ -1754,5 +1825,5 @@
    "seconds": 79.33440899848938
   }
  ],
- "seconds": 2426.447119951248
+ "seconds": 79.12258005142212
 }
