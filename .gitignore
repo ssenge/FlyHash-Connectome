@@ -17,3 +17,6 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 results/log_*.txt
+
+# Local review notes, not part of the repository.
+CRITIQUE.md
