@@ -201,3 +201,19 @@ def test_imputation_changes_only_unmeasured_entries(cfg, full, odours, how):
     obs = odours.observed
     assert np.allclose(alt.x[obs], odours.x[obs])
     assert not np.allclose(alt.x[~obs], 0.0)
+
+
+def test_margin_controls_keep_nnz_and_requested_margins(proj):
+    for ei in (False, True):
+        for eo in (False, True):
+            q = fh.margin_control(proj, seed=3, equal_in=ei, equal_out=eo, sweeps=2)
+            assert q.nnz == proj.nnz
+            if ei:
+                assert q.inputs().max() - q.inputs().min() <= 1
+            else:
+                np.testing.assert_array_equal(np.sort(q.inputs()), np.sort(proj.inputs()))
+                np.testing.assert_array_equal(q.inputs(), proj.inputs())
+            if eo:
+                assert q.fan_out().max() - q.fan_out().min() <= 1
+            else:
+                np.testing.assert_array_equal(q.fan_out(), proj.fan_out())

@@ -82,8 +82,10 @@ def glomerulus_of(cell_type: str | float) -> str | None:
 def mushroom_body(graph, side: str = "R", olfactory_only: bool = True) -> Projection:
     """The measured glomerulus -> Kenyon cell projection of one hemisphere.
 
-    `meta["pn_partners"]` records, for every retained cell, the number of
-    distinct projection neurons (before glomerulus aggregation) that contact it.
+    `meta["pn_counts"]` records, per glomerulus and retained cell, the number
+    of distinct projection neurons of that glomerulus contacting the cell;
+    `meta["pn_partners"]` is its column sum (distinct PN partners per cell).
+    Both follow the cells and glomeruli through `align`.
     """
     import scipy.sparse as sp
 
@@ -104,14 +106,15 @@ def mushroom_body(graph, side: str = "R", olfactory_only: bool = True) -> Projec
     gloms = sorted(pn["glom"].unique())
     index = {g: i for i, g in enumerate(gloms)}
     m = np.zeros((len(gloms), sub.shape[1]))
+    counts = np.zeros((len(gloms), sub.shape[1]), np.int64)
     for row, g in enumerate(pn["glom"]):
         m[index[g]] += sub[row]
+        counts[index[g]] += sub[row] > 0
 
     keep = (m > 0).sum(axis=0) > 0        # cells with no olfactory input carry nothing
-    pn_partners = (sub > 0).sum(axis=0)[keep]
     return Projection("real", m[:, keep], gloms,
-                      meta={"pn_partners": pn_partners, "side": side,
-                            "n_pn": int(len(pn))})
+                      meta={"pn_counts": counts[:, keep], "pn_partners": counts[:, keep].sum(0),
+                            "side": side, "n_pn": int(len(pn))})
 
 
 def align(p: Projection, used: list[str]) -> Projection:
@@ -121,7 +124,10 @@ def align(p: Projection, used: list[str]) -> Projection:
     sub = p.matrix[idx]
     keep = (sub > 0).sum(axis=0) > 0
     meta = dict(p.meta)
-    if "pn_partners" in meta:
+    if "pn_counts" in meta:
+        meta["pn_counts"] = np.asarray(meta["pn_counts"])[idx][:, keep]
+        meta["pn_partners"] = meta["pn_counts"].sum(0)
+    elif "pn_partners" in meta:
         meta["pn_partners"] = np.asarray(meta["pn_partners"])[keep]
     return Projection(p.name, sub[:, keep], list(used), meta=meta)
 
@@ -236,6 +242,43 @@ def balanced_fanout(p: Projection, seed: int = 0, sweeps: int = 30) -> Projectio
     q = curveball(Projection("balanced_fanout", out, p.glomeruli), seed=seed + 1,
                   sweeps=sweeps)
     return Projection("balanced_fanout", q.matrix, p.glomeruli)
+
+
+def _even(total: int, n: int, rng) -> np.ndarray:
+    a = np.full(n, total // n)
+    a[rng.choice(n, total - a.sum(), replace=False)] += 1
+    return a
+
+
+def margin_control(p: Projection, seed: int = 0, equal_in: bool = False,
+                   equal_out: bool = False, sweeps: int = 30) -> Projection:
+    """A binary matrix with exactly nnz(p) connections whose margins are
+    either kept or made as even as the total allows: per-cell input counts
+    (`equal_in`) and per-glomerulus fan-out (`equal_out`). The pairing is then
+    randomised by curveball, which preserves both margins. With neither flag
+    this is a draw from the null; with both it is the most regular matrix at
+    the same operation count. Unlike the six-input construction, every
+    variant has the same number of connections as the connectome.
+
+    The margins are realised greedily (cells with most inputs first, each
+    taking the glomeruli with most remaining capacity), which succeeds for any
+    realisable pair of margins (Gale-Ryser).
+    """
+    rng = np.random.default_rng(seed)
+    n_g, n_c = p.matrix.shape
+    total = p.nnz
+    cin = _even(total, n_c, rng) if equal_in else p.inputs()
+    cap = _even(total, n_g, rng) if equal_out else p.fan_out().copy()
+    out = np.zeros((n_g, n_c))
+    for c in np.argsort(-cin, kind="stable"):
+        chosen = np.lexsort((rng.random(n_g), -cap))[:cin[c]]
+        if (cap[chosen] <= 0).any():
+            raise RuntimeError("margins not realisable")
+        out[chosen, c] = 1.0
+        cap[chosen] -= 1
+    name = f"margins_in-{'equal' if equal_in else 'kept'}_out-{'equal' if equal_out else 'kept'}"
+    q = curveball(Projection(name, out, p.glomeruli), seed=seed + 1, sweeps=sweeps)
+    return Projection(name, q.matrix, p.glomeruli)
 
 
 def degenerate(p: Projection, seed: int = 0, n_used: int = 4) -> Projection:

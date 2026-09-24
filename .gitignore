@@ -20,3 +20,6 @@ results/log_*.txt
 
 # Local review notes, not part of the repository.
 CRITIQUE.md
+
+# Local status notes for reviewers, not part of the repository.
+UPDATES.md

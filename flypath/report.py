@@ -34,6 +34,14 @@ def pval(p: float) -> str:
     return f"{p:.3f}"
 
 
+def _holm_all(pr: dict) -> float:
+    """Holm-adjusted p of the primary size when all five sizes form one family."""
+    from .stats import holm
+    ps = [r["randomization"]["p_two_sided"] for r in pr["rows"]]
+    i = next(j for j, r in enumerate(pr["rows"]) if r["primary"])
+    return holm(ps)[i]
+
+
 def _primary_row(pr: dict) -> dict:
     return next(r for r in pr["rows"] if r["primary"])
 
@@ -60,7 +68,7 @@ def figure(pr: dict, ar: dict, path: Path) -> None:
     m = ar["metrics"]["euclidean"]
     ks = m["sizes"]
     g = m["gaussian"]
-    lines = [("fly hash (measured wiring)", m["fly"], _BLUE, "-", "o"),
+    lines = [("fly hash (connectome)", m["fly"], _BLUE, "-", "o"),
              ("Gaussian, k bits", g["k_bits"]["mean"], _VIOLET, "-", "s"),
              ("Gaussian, storage-matched", g["storage_matched"]["mean"], _VIOLET, "--", "^"),
              ("Gaussian, operation-matched", g["computation_matched"]["mean"], _VIOLET, ":", "v")]
@@ -98,7 +106,7 @@ def figure(pr: dict, ar: dict, path: Path) -> None:
     a2.set_xticklabels([f"{k}{'*' if k == pr['primary_k'] else ''}" for k in pr["sizes"]])
     a2.set_xlabel("active Kenyon cells k   (* primary)")
     a2.set_ylabel("mAP relative to null mean (%)")
-    a2.set_title(f"Measured wiring among {pr['B']} curveball nulls",
+    a2.set_title(f"Connectome among {pr['B']} curveball nulls",
                  color=_INK, fontsize=9.5, loc="left")
     a2.grid(axis="y", color="#ecebe6", lw=0.7)
     a2.set_axisbelow(True)
@@ -131,6 +139,7 @@ def latex(pr, ar, cv, rb, co) -> str:
         _mac("InputsFull", f"{P['inputs_mean_full']:.2f}"),
         _mac("Inputs", f"{P['inputs_mean']:.2f}"),
         _mac("PNPartners", f"{P['pn_partners_mean']:.2f}"),
+        _mac("PNPartnersFull", f"{P.get('pn_partners_mean_full', P['pn_partners_mean']):.2f}"),
         _mac("FanMin", P["fan_out_min"]), _mac("FanMax", P["fan_out_max"]),
         _mac("FanMaxGlom", P["fan_out_max_glomerulus"]),
         _mac("NOdorants", P["n_odorants"]),
@@ -160,6 +169,7 @@ def latex(pr, ar, cv, rb, co) -> str:
         _mac("SecRelMax", f"{pct(max(r['relative_difference'] for r in pr['rows'] if not r['primary']), 1)}\\%"),
         _mac("EquivTwoFive", "holds" if boot["equivalent"]["0.025"] else "does not hold"),
         _mac("NullsAbove", row["randomization"]["rank_from_top"] - 1),
+        _mac("PrimaryPHolmAll", pval(_holm_all(pr))),
         _mac("TieConflictMax", f"{100 * max(r['tie_conflict_fraction'] for r in pr['rows']):.1f}\\%"),
     ]
     if cv:
@@ -262,88 +272,227 @@ def latex(pr, ar, cv, rb, co) -> str:
             rt.append(f"{label} & {rel} & {p} \\\\")
         mac.append("\\newcommand{\\RobRows}{" + "\n".join(rt) + "}")
     mac += _benchmark_macros(_load("replication.json"), _load("connectome_benchmarks.json"))
+    an = _load("connectomes.json")
+    if an and an.get("hemispheres"):
+        mac += animal_macros(an)
     return "\n".join(mac) + "\n"
 
 
-_NAMES = {"sift": "SIFT", "glove": "GloVe", "mnist": "MNIST"}
+_NAMES = {"sift": "SIFT", "glove": "GloVe", "mnist": "MNIST", "odours": "Odours"}
+_IMAGE_WORD = ("sift", "glove", "mnist")
+
+
+def _row_at(per: dict, k: int) -> dict:
+    return next(r for r in per["ap"]["rows"] if r["k"] == k)
 
 
 def _benchmark_macros(rp, cb) -> list[str]:
-    """The 2017 benchmarks: replication with random matrices (ReplRows) and
-    the measured wiring on the same data (ConnRows)."""
+    """The 2017 protocol on four datasets: replication with random matrices
+    (ReplRows), the connectome (ConnRows) and operation budgets
+    (BudgetRows)."""
     mac = []
     if rp:
         ks = rp["protocol"]["hash_lengths"]
+        i4 = ks.index(4)
         rows = []
         for name, r in rp["datasets"].items():
             for k in (4, 16):
                 i = ks.index(k)
-                f = {key: r[key]["map"]["mean"][i] for key in ("lsh", "random_20k", "fly_20k", "fly_10d")}
-                rows.append(f"{_NAMES[name]} & {k} & {f['lsh']:.3f} & {f['random_20k']:.3f} & "
-                            f"{f['fly_20k']:.3f} & {f['fly_10d']:.3f} & "
+                f = {key: r[key]["ap"]["mean"][i] for key in ("lsh", "random_20k", "fly_20k", "fly_10d")}
+                rc = {key: r[key]["recall"]["mean"][i] for key in ("lsh", "fly_10d")}
+                rows.append(f"{_NAMES[name]} & {r['d']} & {k} & {f['lsh']:.3f} ({rc['lsh']:.2f}) & "
+                            f"{f['random_20k']:.3f} & {f['fly_20k']:.3f} & "
+                            f"{f['fly_10d']:.3f} ({rc['fly_10d']:.2f}) & "
                             f"{f['fly_10d'] / f['lsh']:.1f}$\\times$ \\\\")
         mac.append("\\newcommand{\\ReplRows}{" + "\n".join(rows) + "}")
-        i4 = ks.index(4)
-        mn, sf = rp["datasets"].get("mnist"), rp["datasets"].get("sift")
+        mn, sf, od = (rp["datasets"].get(n) for n in ("mnist", "sift", "odours"))
         if mn:
-            lsh, fly = mn["lsh"]["map"]["mean"][i4], mn["fly_10d"]["map"]["mean"][i4]
+            lsh, fly = mn["lsh"]["ap"]["mean"][i4], mn["fly_10d"]["ap"]["mean"][i4]
             mac += [_mac("ReplMnistLsh", f"{lsh:.3f}"), _mac("ReplMnistFly", f"{fly:.3f}"),
                     _mac("ReplMnistRatio", f"{fly / lsh:.1f}"),
                     _mac("ReplOpsBitsMnist", mn["lsh_ops_10d_bits"])]
+        if mn:
+            tc = mn["truth_centred"]
+            mac += [_mac("ReplMnistFlyRetr", f"{mn['fly_10d']['ap_retrieved']['mean'][i4]:.3f}"),
+                    _mac("ReplMnistRatioCentred",
+                         f"{tc['fly_10d']['ap']['mean'][i4] / tc['lsh']['ap']['mean'][i4]:.1f}"),
+                    _mac("ReplMnistRecallRatio",
+                         f"{mn['fly_10d']['recall']['mean'][i4] / mn['lsh']['recall']['mean'][i4]:.1f}"),
+                    _mac("ReplMnistOverlapRatio",
+                         f"{mn['fly_10d']['overlap']['mean'][i4] / mn['lsh']['overlap']['mean'][i4]:.1f}"),
+                    _mac("ReplMnistLshRetr", f"{mn['lsh']['ap_retrieved']['mean'][i4]:.3f}"),
+                    _mac("ReplMnistLshOverlap", f"{mn['lsh']['overlap']['mean'][i4]:.3f}")]
         if sf:
-            mac += [_mac("ReplSiftRandom", f"{sf['random_20k']['map']['mean'][i4]:.3f}"),
-                    _mac("ReplSiftWta", f"{sf['fly_20k']['map']['mean'][i4]:.3f}")]
-        ops = [r["lsh_ops_10d"]["map"]["mean"] for r in rp["datasets"].values()]
-        fly32 = [r["fly_10d"]["map"]["mean"][ks.index(32)] for r in rp["datasets"].values()]
+            mac += [_mac("ReplSiftRandom", f"{sf['random_20k']['ap']['mean'][i4]:.3f}"),
+                    _mac("ReplSiftWta", f"{sf['fly_20k']['ap']['mean'][i4]:.3f}")]
+        if od:
+            lsh, fly = od["lsh"]["ap"]["mean"][i4], od["fly_10d"]["ap"]["mean"][i4]
+            mac += [_mac("ReplOdourRatio", f"{fly / lsh:.1f}")]
+        img = [rp["datasets"][n] for n in _IMAGE_WORD if n in rp["datasets"]]
+        ops = [r["lsh_ops_10d"]["ap"]["mean"] for r in img]
+        fly32 = [r["fly_10d"]["ap"]["mean"][ks.index(32)] for r in img]
         mac += [_mac("ReplTrials", rp["protocol"]["trials"]),
                 _mac("ReplOpsMin", f"{min(ops):.2f}"), _mac("ReplOpsMax", f"{max(ops):.2f}"),
                 _mac("ReplFlyMax", f"{max(fly32):.2f}")]
+        # operation budgets: the 10d fly (10d cells x s additions) against k-projection LSH (2kd)
+        bt = []
+        for name, r in rp["datasets"].items():
+            d, s = r["d"], r["sampled"]
+            ratio = 10 * d * s / (2 * 4 * d)
+            fly = r["fly_10d"]["ap"]["mean"][ks.index(32)]
+            bt.append(f"{_NAMES[name]} & {d} & {ratio:.0f}$\\times$ & {r['lsh_ops_10d_bits']} & "
+                      f"{r['lsh_ops_10d']['ap']['mean']:.3f} & {fly:.3f} \\\\")
+        mac.append("\\newcommand{\\BudgetRows}{" + "\n".join(bt) + "}")
     if cb:
-        big = max(cb["sizes"])
         rows = []
         for name, per in cb["datasets"].items():
-            for r in per["map"]["rows"]:
-                if r["k"] in (4, 16, big):
-                    rows.append(f"{_NAMES[name]} & {r['k']} & {r['real']:.3f} & {r['null_mean']:.3f} & "
-                                f"{pct(r['relative_difference'], 1)} & {pval(r['p_two_sided'])} & "
-                                f"{r['random_2017']:.3f} & {r['lsh']:.3f} \\\\")
+            big = max(per["sizes"])
+            for k in (4, 16, big):
+                r = _row_at(per, k)
+                rows.append(f"{_NAMES[name]} & {k} & {r['real']:.3f} & {r['null_mean']:.3f} & "
+                            f"{pct(r['relative_difference'], 1)} & {pval(r['p_two_sided'])} & "
+                            f"{r['random_2017']:.3f} & {r['lsh']:.3f} \\\\")
         mac.append("\\newcommand{\\ConnRows}{" + "\n".join(rows) + "}")
-        allr = [r for per in cb["datasets"].values() for r in per["map"]["rows"]]
-        ops = [per["map"]["lsh_ops"] for per in cb["datasets"].values()]
-        flybig = [next(r for r in per["map"]["rows"] if r["k"] == big)["real"]
-                  for per in cb["datasets"].values()]
+        allr = [r for per in cb["datasets"].values() for r in per["ap"]["rows"]]
+        ref = next(cb["datasets"][n] for n in _IMAGE_WORD + ("odours",) if n in cb["datasets"])
+        ops = [(per["ap"]["lsh_ops"], max(r["real"] for r in per["ap"]["rows"]))
+               for per in cb["datasets"].values()]
         mac += [_mac("ConnB", cb["B"]), _mac("ConnTrials", cb["trials"]),
-                _mac("ConnGlom", cb["n_glomeruli"]),
-                _mac("ConnCells", f"{cb['n_cells']:,}".replace(",", "{,}")),
-                _mac("ConnBigK", big),
+                _mac("ConnGlom", ref["n_glomeruli"]),
+                _mac("ConnCells", f"{ref['n_cells']:,}".replace(",", "{,}")),
                 _mac("ConnRelMin", f"{pct(min(r['relative_difference'] for r in allr), 1)}\\%"),
                 _mac("ConnRelMax", f"{pct(max(r['relative_difference'] for r in allr), 1)}\\%"),
-                _mac("ConnPMin", pval(min(r["p_two_sided"] for r in allr))),
                 _mac("ConnNSig", sum(r["p_two_sided"] < 0.05 for r in allr)),
                 _mac("ConnNTests", len(allr)),
-                _mac("ConnOpsBits", cb["lsh_ops_matched_bits"]),
-                _mac("ConnOpsMin", f"{min(ops):.2f}"), _mac("ConnOpsMax", f"{max(ops):.2f}"),
-                _mac("ConnFlyBigMin", f"{min(flybig):.2f}"), _mac("ConnFlyBigMax", f"{max(flybig):.2f}"),
+                _mac("ConnPFloor", pval(2 / (cb["B"] + 1))),
+                _mac("ConnOpsBits", ref["lsh_ops_matched_bits"]),
+                _mac("ConnOpsWins", sum(o > f for o, f in ops)), _mac("ConnNData", len(ops)),
                 _mac("ConnRandGainMax", f"{100 * max(r['random_2017'] / r['real'] - 1 for r in allr):.0f}\\%")]
-        mn = cb["datasets"].get("mnist")
-        if mn:
-            r4 = next(r for r in mn["map"]["rows"] if r["k"] == 4)
+        if "mnist" in cb["datasets"]:
+            r4 = _row_at(cb["datasets"]["mnist"], 4)
             mac += [_mac("ConnMnistReal", f"{r4['real']:.3f}"), _mac("ConnMnistLsh", f"{r4['lsh']:.3f}"),
                     _mac("ConnMnistRatio", f"{r4['real'] / r4['lsh']:.1f}")]
+        if "odours" in cb["datasets"]:
+            od = cb["datasets"]["odours"]
+            r4 = _row_at(od, 4)
+            big = _row_at(od, max(od["sizes"]))
+            mac += [_mac("ConnOdourRatio", f"{r4['real'] / r4['lsh']:.1f}"),
+                    _mac("ConnOdourRel", f"{pct(big['relative_difference'], 1)}\\%"),
+                    _mac("ConnOdourP", pval(big["p_two_sided"])),
+                    _mac("ConnOdourOpsBits", od["lsh_ops_matched_bits"]),
+                    _mac("ConnOdourOps", f"{od['ap']['lsh_ops']:.3f}"),
+                    _mac("ConnOdourFlyBig", f"{big['real']:.3f}"),
+                    _mac("ConnOdourBigK", big["k"])]
+    if rp and rp.get("dimension_sweep"):
+        ds = rp["dimension_sweep"]
+        rows = []
+        for r in ds["rows"]:
+            lsh, fly = r["lsh"]["ap"]["mean"][0], r["fly_10d"]["ap"]["mean"][0]
+            best = max(r["fly_10d"]["ap"]["mean"])
+            rows.append(f"{r['d']} & {10 * r['sampled'] / 8:.0f}$\\times$ & {lsh:.3f} & {fly:.3f} & "
+                        f"{fly / lsh:.1f}$\\times$ & {r['lsh_ops_10d_bits']} & "
+                        f"{r['lsh_ops_10d']['ap']['mean']:.3f} & {best:.3f} \\\\")
+        mac.append("\\newcommand{\\DimRows}{" + "\n".join(rows) + "}")
+    if cb:
+        mac += _control_macros(cb)
     return mac
+
+
+def _control_macros(cb: dict) -> list[str]:
+    """Equal-connection controls and the centring ablation, relative to the
+    null mean of the same run (ControlRows)."""
+    rows = []
+    for name, per in cb["datasets"].items():
+        nc = per.get("no_centring")
+        for k in (4, max(per["sizes"])):
+            r = _row_at(per, k)
+            rel = lambda key, rr=r: pct(rr[key] / rr["null_mean"] - 1, 1)
+            cells = [pct(r["relative_difference"], 1), rel("in_equal"), rel("out_equal"),
+                     rel("both_equal"), rel("random_2017")]
+            if nc:
+                r2 = _row_at(nc, k)
+                cells += [pct(r2["relative_difference"], 1), pct(r2["both_equal"] / r2["null_mean"] - 1, 1)]
+            rows.append(f"{_NAMES[name]} & {k} & " + " & ".join(cells) + " \\\\")
+    both = [_row_at(per, k)["both_equal"] / _row_at(per, k)["null_mean"] - 1
+            for per in cb["datasets"].values() for k in per["sizes"]]
+    six = [_row_at(per, k)["random_2017"] / _row_at(per, k)["null_mean"] - 1
+           for per in cb["datasets"].values() for k in per["sizes"]]
+    img = [per for n, per in cb["datasets"].items() if n != "odours"]
+    rel = lambda key: [_row_at(per, k)[key] / _row_at(per, k)["null_mean"] - 1
+                       for per in img for k in per["sizes"]]
+    conn = [_row_at(per, k)["relative_difference"] for per in img for k in per["sizes"]]
+    return ["\\newcommand{\\ControlRows}{" + "\n".join(rows) + "}",
+            _mac("CtrlOutMin", f"{pct(min(rel('out_equal')), 0)}\\%"),
+            _mac("CtrlOutMax", f"{pct(max(rel('out_equal')), 0)}\\%"),
+            _mac("CtrlInMin", f"{pct(min(rel('in_equal')), 0)}\\%"),
+            _mac("CtrlInMax", f"{pct(max(rel('in_equal')), 0)}\\%"),
+            _mac("ConnImgMin", f"{pct(min(conn), 1)}\\%"), _mac("ConnImgMax", f"{pct(max(conn), 1)}\\%"),
+            _mac("CtrlBothMin", f"{pct(min(both), 1)}\\%"), _mac("CtrlBothMax", f"{pct(max(both), 1)}\\%"),
+            _mac("CtrlSixMin", f"{pct(min(six), 1)}\\%"), _mac("CtrlSixMax", f"{pct(max(six), 1)}\\%")]
+
+
+def benchmark_figure(cb: dict, path: Path) -> None:
+    """One panel per dataset, all methods on the same input: connectome,
+    null mean with a 2 SD band, the 2017 construction, LSH with k projections,
+    and LSH with the operation count of the measured projection."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    names = [n for n in ("sift", "glove", "mnist", "odours") if n in cb["datasets"]]
+    fig, axes = plt.subplots(1, len(names), figsize=(9.0, 2.6), sharey=True)
+    axes = np.atleast_1d(axes)
+    for ax, name in zip(axes, names):
+        per = cb["datasets"][name]
+        rows = per["ap"]["rows"]
+        ks = [r["k"] for r in rows]
+        nm = np.array([r["null_mean"] for r in rows])
+        nsd = np.array([r["null_sd"] for r in rows])
+        ax.fill_between(ks, nm - 2 * nsd, nm + 2 * nsd, color=_ORANGE, alpha=0.25, lw=0)
+        ax.plot(ks, nm, color=_ORANGE, lw=1.2, label="null mean $\\pm$2 SD")
+        ax.plot(ks, [r["real"] for r in rows], "-o", color=_BLUE, lw=1.8, ms=3.5,
+                markeredgecolor=_SURFACE, markeredgewidth=0.6, label="connectome")
+        ax.plot(ks, [r["random_2017"] for r in rows], "--", color=_BLUE, lw=1.2,
+                label="2017 construction (6 inputs)")
+        ax.plot(ks, [r["both_equal"] for r in rows], ":", color=_BLUE, lw=1.4,
+                label="even degrees, same connections")
+        ax.plot(ks, [r["lsh"] for r in rows], "-s", color=_VIOLET, lw=1.5, ms=3.2,
+                markeredgecolor=_SURFACE, markeredgewidth=0.6, label="LSH, k projections")
+        ax.axhline(per["ap"]["lsh_ops"], color=_VIOLET, ls=":", lw=1.4,
+                   label="LSH, equal operations")
+        ax.set_xscale("log", base=2)
+        ax.set_xticks(ks)
+        ax.set_xticklabels(ks, fontsize=7)
+        ax.set_title(f"{_NAMES[name]} (d = {per['n_glomeruli']})", color=_INK, fontsize=9, loc="left")
+        ax.set_xlabel("active Kenyon cells k", fontsize=8)
+        ax.grid(axis="y", color="#ecebe6", lw=0.7)
+        ax.set_axisbelow(True)
+    axes[0].set_ylabel("mean average precision")
+    h, lab = axes[0].get_legend_handles_labels()
+    leg = fig.legend(h, lab, loc="lower center", ncol=6, frameon=False, fontsize=6.5,
+                     bbox_to_anchor=(0.5, -0.06))
+    for t in leg.get_texts():
+        t.set_color(_MUTED)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
 
 
 def _benchmark_supplement(rp, cb) -> list[str]:
     L = []
     if rp:
         pc = rp["protocol"]
-        L += ["## The 2017 benchmarks with random matrices (replication)", "",
+        L += ["## The 2017 protocol with random matrices", "",
               f"{pc['n']} vectors per dataset, {pc['queries']} queries, top {100 * pc['top']:.0f}% "
               f"neighbours, {pc['trials']} trials; each Kenyon cell samples {100 * pc['sampling']:.0f}% "
               "of the inputs. Mean (SD over trials). Reported in the 2017 paper: MNIST k=4 LSH 0.160, "
-              "fly (m=10d) 0.448; SIFT k=4 random selection 0.177, WTA (m=20k) 0.324.", ""]
-        for met, title in (("map", "mean average precision (standard definition)"),
-                           ("overlap", "list overlap (FlyLSH reference code)")):
+              "fly (m=10d) 0.448; SIFT k=4 random selection 0.177, WTA (m=20k) 0.324. "
+              "Odours (DoOR mixtures) were not part of the 2017 benchmarks.", ""]
+        for met, title in (("ap", "AP@200 (average precision, all 200 true neighbours in the denominator)"),
+                           ("recall", "recall@200"),
+                           ("overlap", "list overlap (FlyLSH reference code; not AP)"),
+                           ("ap_retrieved", "precision averaged over retrieved neighbours only "
+                                            "(the flawed score of revision 3; not AP)")):
             L += [f"### {title}", "",
                   "| dataset | k | LSH | sign LSH | random 20k | fly 20k | fly 10d |",
                   "|---|---|---|---|---|---|---|"]
@@ -353,19 +502,19 @@ def _benchmark_supplement(rp, cb) -> list[str]:
                          for key in ("lsh", "lsh_sign", "random_20k", "fly_20k", "fly_10d")}
                     L.append(f"| {_NAMES[name]} | {k} | {c['lsh']} | {c['lsh_sign']} | "
                              f"{c['random_20k']} | {c['fly_20k']} | {c['fly_10d']} |")
-            L += ["", "LSH given the operation count of the m = 10d fly (10d cells x 0.1d additions "
-                      "= 2d operations x d/2 projections):", ""]
+            L += ["", "LSH given the operation count of the m = 10d fly (10d cells x s additions, "
+                      "2d operations per projection):", ""]
             for name, r in rp["datasets"].items():
                 L.append(f"- {_NAMES[name]}: {r['lsh_ops_10d_bits']} projections, "
                          f"{r['lsh_ops_10d'][met]['mean']:.3f} ({r['lsh_ops_10d'][met]['sd']:.3f})")
             L.append("")
     if cb:
-        L += ["## The measured wiring on the 2017 benchmarks", "",
-              f"Each dataset reduced by PCA to {cb['n_glomeruli']} components (one per glomerulus, "
-              f"assigned at random in each trial); {cb['n_cells']} Kenyon cells, {cb['trials']} trials, "
-              f"{cb['B']} curveball nulls, each matrix's score averaged over trials. "
-              f"'2017 random': every cell samples 6 of the {cb['n_glomeruli']} glomeruli.", ""]
-        for met in ("map", "overlap"):
+        L += ["## The connectome under the 2017 protocol", "",
+              f"{cb['trials']} trials, {cb['B']} curveball nulls, each matrix's score averaged over "
+              "trials. SIFT, GloVe and MNIST are reduced by PCA to one component per glomerulus "
+              "and assigned to glomeruli at random in each trial; odours use the measured glomeruli. "
+              "'2017 random': every cell samples 6 glomeruli uniformly.", ""]
+        for met in ("ap", "recall", "overlap"):
             L += [f"### {met}", "",
                   "| dataset | k | measured | null mean +/- SD | rel. diff. | p | 2017 random | LSH | sign LSH |",
                   "|---|---|---|---|---|---|---|---|---|"]
@@ -375,9 +524,178 @@ def _benchmark_supplement(rp, cb) -> list[str]:
                              f"{r['null_sd']:.4f} | {pct(r['relative_difference'], 2)}% | "
                              f"{pval(r['p_two_sided'])} | {r['random_2017']:.4f} | {r['lsh']:.4f} | "
                              f"{r['lsh_sign']:.4f} |")
-                L.append(f"| {_NAMES[name]} | LSH, matched operations ({cb['lsh_ops_matched_bits']} "
-                         f"projections) | {per[met]['lsh_ops']:.4f} | | | | | | |")
+                L.append(f"| {_NAMES[name]} (d = {per['n_glomeruli']}, m = {per['n_cells']}) | "
+                         f"LSH, equal operations ({per['lsh_ops_matched_bits']} projections) | "
+                         f"{per[met]['lsh_ops']:.4f} | | | | | | |")
             L.append("")
+    return L
+
+
+# ------------------------------------------------------------------ connectomes
+
+def _hemi_stats(h: dict) -> dict:
+    prim = next(r for r in h["odours"] if r["primary"])
+    matched = next(r for r in h["odours_matched"] if r["primary"])
+    proto = [r for per in h["protocol"].values() for r in per["ap"]["rows"]]
+    mn4 = next(r for r in h["protocol"]["mnist"]["ap"]["rows"] if r["k"] == 4)
+    return {"prim": prim, "matched": matched, "proto": proto,
+            "mnist_ratio": mn4["real"] / mn4["lsh"],
+            "proto_min": min(r["relative_difference"] for r in proto),
+            "proto_max": max(r["relative_difference"] for r in proto),
+            "proto_mean": float(np.mean([r["relative_difference"] for r in proto])),
+            "both_mean": float(np.mean([r["both_equal"] / r["null_mean"] - 1 for r in proto])),
+            "six_mean": float(np.mean([r["random_2017"] / r["null_mean"] - 1 for r in proto]))}
+
+
+def animal_macros(an: dict) -> list[str]:
+    hs = an["hemispheres"]
+    rows = []
+    for key, h in hs.items():
+        s = _hemi_stats(h)
+        f = h["full"]
+        rows.append(f"{h['label']} & {h['sex'][0]} & {f['n_cells']:,} & {f['inputs_mean']:.2f} & "
+                    f"{f['fan_out_cv']:.2f} & {h['structure']['z']:+.1f} & "
+                    f"{pct(s['prim']['relative_difference'], 1)} ({pval(s['prim']['p_two_sided'])}) & "
+                    f"{pct(s['matched']['relative_difference'], 1)} ({pval(s['matched']['p_two_sided'])}) & "
+                    f"{pct(s['proto_min'], 1)} to {pct(s['proto_max'], 1)} & "
+                    f"{pct(s['both_mean'], 1)} & {pct(s['six_mean'], 1)} & "
+                    f"{s['mnist_ratio']:.1f} \\\\".replace(",", "{,}"))
+    st = {k: _hemi_stats(h) for k, h in hs.items()}
+    allproto = [r for s in st.values() for r in s["proto"]]
+    odour = [s["prim"] for s in st.values()]
+    matched = [s["matched"] for s in st.values()]
+    zs = [h["structure"]["z"] for h in hs.values()]
+    # hemispheres of one animal are not independent: summarise per animal
+    animals = {}
+    for k, h in hs.items():
+        animals.setdefault(h["dataset"], []).append(st[k])
+    an_odour = {a: np.mean([s["prim"]["relative_difference"] for s in v]) for a, v in animals.items()}
+    an_proto = {a: np.mean([s["proto_mean"] for s in v]) for a, v in animals.items()}
+    pfloor = 2 / (an["B_bench"] + 1)
+    return ["\\newcommand{\\AnimalRows}{" + "\n".join(rows) + "}",
+            _mac("AnimN", len(hs)), _mac("AnimAnimals", len(animals)),
+            _mac("AnimB", an["B"]), _mac("AnimBBench", an["B_bench"]),
+            _mac("AnimTrials", an["trials"]), _mac("AnimPFloor", pval(pfloor)),
+            _mac("AnimOdourPFloor", pval(2 / (an["B"] + 1))),
+            _mac("AnimCommon", len(an["common_glomeruli"])),
+            _mac("AnimCommonOdour", len(an["common_odour_glomeruli"])),
+            _mac("AnimRelMin", f"{pct(min(r['relative_difference'] for r in allproto), 1)}\\%"),
+            _mac("AnimRelMax", f"{pct(max(r['relative_difference'] for r in allproto), 1)}\\%"),
+            _mac("AnimNNeg", sum(r["relative_difference"] < 0 for r in allproto)),
+            _mac("AnimRelMedian", f"{pct(float(np.median([r['relative_difference'] for r in allproto])), 1)}\\%"),
+            _mac("AnimRelIQR", "{} to {}".format(*(f"{pct(v, 1)}\\%" for v in np.percentile(
+                [r["relative_difference"] for r in allproto], [25, 75])))),
+            _mac("AnimNProto", len(allproto)),
+            _mac("AnimNFloor", sum(r["p_two_sided"] <= pfloor + 1e-12 and r["relative_difference"] < 0
+                                   for r in allproto)),
+            _mac("AnimNFloorUp", sum(r["p_two_sided"] <= pfloor + 1e-12 and r["relative_difference"] > 0
+                                     for r in allproto)),
+            _mac("AnimOdourMin", f"{pct(min(r['relative_difference'] for r in odour), 1)}\\%"),
+            _mac("AnimOdourMax", f"{pct(max(r['relative_difference'] for r in odour), 1)}\\%"),
+            _mac("AnimOdourNNeg", sum(r["relative_difference"] < 0 for r in odour)),
+            _mac("AnimOdourNSig", sum(r["p_two_sided"] < 0.05 for r in odour)),
+            _mac("AnimMatchedMin", f"{pct(min(r['relative_difference'] for r in matched), 1)}\\%"),
+            _mac("AnimMatchedMax", f"{pct(max(r['relative_difference'] for r in matched), 1)}\\%"),
+            _mac("AnimMatchedNSig", sum(r["p_two_sided"] < 0.05 for r in matched)),
+            _mac("AnimalsOdourNeg", sum(v < 0 for v in an_odour.values())),
+            _mac("AnimalsProtoNeg", sum(v < 0 for v in an_proto.values())),
+            _mac("AnimQzMin", f"{min(zs):.1f}"), _mac("AnimQzMax", f"{max(zs):.1f}"),
+            _mac("AnimQNSig", sum(h["structure"]["test"]["p_upper"] < 0.05 for h in hs.values())),
+            _mac("AnimBothMin", f"{pct(min(s['both_mean'] for s in st.values()), 1)}\\%"),
+            _mac("AnimBothMax", f"{pct(max(s['both_mean'] for s in st.values()), 1)}\\%"),
+            _mac("AnimLshMin", f"{min(s['mnist_ratio'] for s in st.values()):.1f}"),
+            _mac("AnimLshMax", f"{max(s['mnist_ratio'] for s in st.values()):.1f}"),
+            _mac("AnimCellsMin", f"{min(h['full']['n_cells'] for h in hs.values()):,}".replace(",", "{,}")),
+            _mac("AnimCellsMax", f"{max(h['full']['n_cells'] for h in hs.values()):,}".replace(",", "{,}")),
+            _mac("AnimInMin", f"{min(h['full']['inputs_mean'] for h in hs.values()):.2f}"),
+            _mac("AnimInMax", f"{max(h['full']['inputs_mean'] for h in hs.values()):.2f}")]
+
+
+def animal_figure(an: dict, path: Path) -> None:
+    """Left: inputs per Kenyon cell in every hemisphere. Right: every
+    hemisphere's relative difference to its null, per dataset and hash size
+    under the 2017 protocol, and at the primary size of the odour analysis."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    hs = list(an["hemispheres"].values())
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.0, 2.9), gridspec_kw={"width_ratios": [1, 1.7]})
+    shades = {"malecns": _BLUE, "hemibrain": _ORANGE, "flywire": _VIOLET, "banc": "#1b9e77"}
+    for h in hs:
+        hist = np.array(h["full"]["inputs_hist"], float)
+        a1.plot(np.arange(len(hist)), hist / hist.sum(), color=shades[h["dataset"]], lw=1.3,
+                ls="-" if h["side"] == "R" else "--", label=h["label"])
+    a1.set_xlim(0, 14)
+    a1.set_xlabel("glomerular inputs per Kenyon cell")
+    a1.set_ylabel("fraction of cells")
+    a1.set_title("Degree sequences", color=_INK, fontsize=9.5, loc="left")
+    leg = a1.legend(frameon=False, fontsize=6.5, ncol=1)
+    for t in leg.get_texts():
+        t.set_color(_MUTED)
+    marks = {"sift": "o", "glove": "s", "mnist": "^", "odours": "D"}
+    rng = np.random.default_rng(0)
+    for i, h in enumerate(hs):
+        for name, per in h["protocol"].items():
+            v = [100 * r["relative_difference"] for r in per["ap"]["rows"]]
+            a2.scatter(i + rng.uniform(-0.25, 0.25, len(v)), v, s=9, marker=marks[name],
+                       color=shades[h["dataset"]], alpha=0.55, linewidths=0,
+                       label=name if i == 0 else None)
+        prim = next(r for r in h["odours"] if r["primary"])
+        a2.scatter([i], [100 * prim["relative_difference"]], s=60, marker="*", color=_INK,
+                   zorder=3, label="odour analysis, primary k" if i == 0 else None)
+    a2.axhline(0, color="#9a9992", lw=0.9)
+    a2.set_xticks(range(len(hs)))
+    a2.set_xticklabels([h["label"] for h in hs], fontsize=7, rotation=20)
+    a2.set_ylabel("mAP relative to null mean (%)")
+    a2.set_title("Connectome against its own null", color=_INK, fontsize=9.5, loc="left")
+    a2.grid(axis="y", color="#ecebe6", lw=0.7)
+    a2.set_axisbelow(True)
+    leg = a2.legend(frameon=False, fontsize=6.5, ncol=5, loc="lower center",
+                    bbox_to_anchor=(0.5, -0.42))
+    for t in leg.get_texts():
+        t.set_color(_MUTED)
+    fig.tight_layout()
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def animal_supplement(an: dict) -> list[str]:
+    L = ["## Four connectomes, seven hemispheres", "",
+         f"Identical settings for every hemisphere: pairing structure and odour analysis against "
+         f"{an['B']} curveball nulls; the 2017 protocol against {an['B_bench']} nulls over "
+         f"{an['trials']} trials.", "",
+         "| hemisphere | sex | glomeruli | Kenyon cells | PNs | inputs/cell (mean, median) | fan-out CV | "
+         "synapses | Q z | odour glomeruli |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for h in an["hemispheres"].values():
+        f = h["full"]
+        L.append(f"| {h['label']} | {h['sex']} | {f['n_glomeruli']} | {f['n_cells']} | {f['n_pn']} | "
+                 f"{f['inputs_mean']:.2f}, {f['inputs_median']:.0f} | {f['fan_out_cv']:.2f} | "
+                 f"{f['synapses']:.0f} | {h['structure']['z']:+.1f} | {len(h['odour_glomeruli'])} |")
+    for key, title in (("odours", "each connectome's DoOR glomeruli"),
+                       ("odours_matched", f"the {len(an['common_odour_glomeruli'])} DoOR glomeruli "
+                                          "every hemisphere has")):
+        L += ["", f"### Odour analysis (4000 mixtures, kappa = 10), {title}", "",
+              "| hemisphere | k | measured | null mean +/- SD | rel. diff. | p | fan-in equal | "
+              "fan-out equal | both equal | six inputs |", "|---|---|---|---|---|---|---|---|---|---|"]
+        for h in an["hemispheres"].values():
+            for r in h[key]:
+                L.append(f"| {h['label']} | {r['k']}{'*' if r['primary'] else ''} | {r['real']:.4f} | "
+                         f"{r['null_mean']:.4f} +/- {r['null_sd']:.4f} | {pct(r['relative_difference'], 2)}% | "
+                         f"{pval(r['p_two_sided'])} | {pct(r['in_equal_relative'], 1)}% | "
+                         f"{pct(r['out_equal_relative'], 1)}% | {pct(r['both_equal_relative'], 1)}% | "
+                         f"{pct(r['uniform6_relative'], 1)}% |")
+    L += ["", "### The 2017 protocol (mAP)", "",
+          "| hemisphere | dataset | k | measured | null mean | rel. diff. | p | even degrees | "
+          "six inputs | LSH |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for h in an["hemispheres"].values():
+        for name, per in h["protocol"].items():
+            for r in per["ap"]["rows"]:
+                L.append(f"| {h['label']} | {_NAMES[name]} | {r['k']} | {r['real']:.4f} | "
+                         f"{r['null_mean']:.4f} | {pct(r['relative_difference'], 2)}% | "
+                         f"{pval(r['p_two_sided'])} | {r['both_equal']:.4f} | {r['random_2017']:.4f} | "
+                         f"{r['lsh']:.4f} |")
+    L.append("")
     return L
 
 
@@ -410,13 +728,14 @@ def _jaccard_plateau(cv: dict, tol: float = 0.005) -> tuple[str, float]:
 
 # ------------------------------------------------------------------ supplement
 
+
 def supplement(pr, ar, cv, rb, co) -> str:
     L = ["# Supplement: full results", "",
          "Generated by `python -m flypath report` from `results/*.json`. Every table in the",
          "paper is a subset of what is here.", ""]
     if rb:
         L += [f"## Robustness grid ({rb['B']} curveball nulls per condition)", "",
-              "Relative mAP difference (measured wiring vs null mean) and two-sided randomization p,",
+              "Relative mAP difference (connectome vs null mean) and two-sided randomization p,",
               "for the primary hash size (5% of Kenyon cells) and every secondary size.", ""]
         ks = sorted({k["k"] for c in rb["rows"] for k in c["per_k"] if not k["primary"]})
         L.append("| condition | items | glom. | cells | primary k: rel. diff | p | "
@@ -432,7 +751,7 @@ def supplement(pr, ar, cv, rb, co) -> str:
         L.append("")
     if pr:
         L += ["## Power of the randomization test (primary hash size)", "",
-              "Shift model: the measured wiring behaves like a random wiring whose score is",
+              "Shift model: the connectome behaves like a random wiring whose score is",
               "multiplied by (1 + delta); rejection rate at alpha = 0.05 against the empirical null.", "",
               "| delta | power (one-sided) |", "|---|---|"]
         for d, v in {**pr["power"]["lower"], **pr["power"]["upper"]}.items():
@@ -496,6 +815,9 @@ def supplement(pr, ar, cv, rb, co) -> str:
               f"per Gaussian projection, one addition per non-zero of M). "
               f"Ratios are fly / Gaussian.", ""]
     L += _benchmark_supplement(_load("replication.json"), _load("connectome_benchmarks.json"))
+    an = _load("connectomes.json")
+    if an and an.get("hemispheres"):
+        L += animal_supplement(an)
     return "\n".join(L)
 
 
@@ -533,11 +855,11 @@ def readme_block(pr, ar, rb, co) -> str:
     if rp and "mnist" in rp["datasets"]:
         mn = rp["datasets"]["mnist"]
         i4 = rp["protocol"]["hash_lengths"].index(4)
-        L += ["", f"2017 protocol with random matrices, MNIST, k = 4: LSH {mn['lsh']['map']['mean'][i4]:.3f} "
-                  f"(reported 0.160), fly hash {mn['fly_10d']['map']['mean'][i4]:.3f} (reported 0.448)."]
+        L += ["", f"2017 protocol with random matrices, MNIST, k = 4: LSH {mn['lsh']['ap']['mean'][i4]:.3f} "
+                  f"(reported 0.160), fly hash {mn['fly_10d']['ap']['mean'][i4]:.3f} (reported 0.448)."]
     if cb:
-        allr = [r for per in cb["datasets"].values() for r in per["map"]["rows"]]
-        L += ["", f"Measured wiring on SIFT, GloVe and MNIST (PCA to {cb['n_glomeruli']} inputs): "
+        allr = [r for per in cb["datasets"].values() for r in per["ap"]["rows"]]
+        L += ["", f"Connectome under the 2017 protocol (SIFT, GloVe, MNIST via PCA; odours): "
                   f"{pct(min(r['relative_difference'] for r in allr), 1)}% to "
                   f"{pct(max(r['relative_difference'] for r in allr), 1)}% relative to "
                   f"{cb['B']} curveball nulls across {len(allr)} dataset-size combinations."]
@@ -577,6 +899,12 @@ def build_all() -> None:
     if not pr:
         raise SystemExit("results/primary.json missing; run: python -m flypath analyse")
     figure(pr, ar, RES / "flyhash.png")
+    cb = _load("connectome_benchmarks.json")
+    if cb:
+        benchmark_figure(cb, RES / "benchmarks.png")
+    an = _load("connectomes.json")
+    if an and an.get("hemispheres"):
+        animal_figure(an, RES / "connectomes.png")
     (ROOT / "paper" / "generated.tex").write_text(latex(pr, ar, cv, rb, co))
     (RES / "SUPPLEMENT.md").write_text(supplement(pr, ar, cv, rb, co))
     readme = ROOT / "README.md"

@@ -23,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--nulls", type=int, default=200)
     a.add_argument("--bootstrap", type=int, default=200)
     a.add_argument("--skip-primary", action="store_true")
+    a.add_argument("--refresh", action="store_true",
+                   help="only recompute power and metadata of results/primary.json")
 
     r = sub.add_parser("robustness", help="one-factor-at-a-time sensitivity grid (~35 min)")
     r.add_argument("--nulls", type=int, default=40)
@@ -37,6 +39,10 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--connectome-trials", type=int, default=20)
     b.add_argument("--nulls", type=int, default=50)
     b.add_argument("--skip-random", action="store_true")
+
+    n = sub.add_parser("connectomes", help="the same analyses on MaleCNS, hemibrain, FlyWire "
+                                            "and BANC, every hemisphere (~3 h)")
+    n.add_argument("--only", help="comma-separated hemispheres, e.g. flywire_L,banc_R")
 
     sub.add_parser("report", help="regenerate figure, LaTeX numbers, README block")
     sub.add_parser("checksums", help="verify input data against DATA_CHECKSUMS.txt")
@@ -53,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "analyse":
         from . import experiments as ex
+        if args.refresh:
+            ex.refresh_power(cfg)
+            return 0
         if not args.skip_primary:
             ex.primary(cfg, B=args.nulls, R=args.bootstrap)
         ex.architecture(cfg)
@@ -75,6 +84,11 @@ def main(argv: list[str] | None = None) -> int:
         if not args.skip_random:
             rp.replicate(cfg, trials=args.trials)
         rp.connectome(cfg, trials=args.connectome_trials, B=args.nulls)
+        return 0
+
+    if args.cmd == "connectomes":
+        from . import connectomes
+        connectomes.compare(cfg, only=args.only.split(",") if args.only else None)
         return 0
 
     if args.cmd == "report":

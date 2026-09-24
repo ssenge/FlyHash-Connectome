@@ -23,11 +23,11 @@ projection values; the binary (sign) variant, their Fig. S3, is reported too.
 the list-overlap score of the FlyLSH code is reported alongside. Of the two,
 the standard definition is the one close to their published values.
 
-`replicate` runs that protocol. `connectome` keeps the protocol and the data
-but replaces the random fly matrix with the measured one: each dataset is
-reduced by PCA to one component per glomerulus, and the measured wiring is
-compared with its curveball nulls, with the 2017 random construction at the
-same size, and with LSH.
+`replicate` runs that protocol, on their three datasets and on a fourth the
+2017 paper did not use: mixtures of DoOR odorant profiles, the input the
+circuit receives. `connectome` keeps the protocol and the data but replaces
+the random fly matrix with the measured one, compared with its curveball
+nulls, with the 2017 random construction at the same size, and with LSH.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ TOP = 0.02
 TRIALS = 50
 HASH_LENGTHS = (2, 4, 8, 16, 32)
 SAMPLING = 0.10
-DATASETS = ("sift", "glove", "mnist")
+DATASETS = ("sift", "glove", "mnist", "odours")
 SOURCES = {
     "mnist.npz": "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz",
     "siftsmall.tar.gz": "ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz",
@@ -58,7 +58,8 @@ SOURCES = {
 
 # ---------------------------------------------------------------- data
 
-def load_benchmark(cfg: Config, name: str, n: int = N_DATA, seed: int = 0) -> np.ndarray:
+def load_benchmark(cfg: Config, name: str, n: int = N_DATA, seed: int = 0,
+                   odours: np.ndarray | None = None) -> np.ndarray:
     """A fixed subset of `n` vectors (float64, raw feature values),
     downloaded on first use."""
     d = cfg.raw_dir / "bench"
@@ -82,6 +83,11 @@ def load_benchmark(cfg: Config, name: str, n: int = N_DATA, seed: int = 0) -> np
             lines = z.read("glove.6B.300d.txt").decode("utf8").splitlines()
         pick = np.sort(rng.choice(len(lines), n, replace=False))
         return np.array([[float(v) for v in lines[i].split(" ")[1:]] for i in pick])
+    if name == "odours":
+        # the fly's own input: synthetic mixtures of DoOR profiles over the
+        # 35 well-measured glomeruli, as in the odour benchmark
+        from .experiments import context
+        return fh.mixtures(context(cfg).odours.x if odours is None else odours, n, seed=seed)
     raise ValueError(f"unknown benchmark {name!r}")
 
 
@@ -138,12 +144,28 @@ def _nearest(dist: np.ndarray, queries: np.ndarray, top: int, rng) -> np.ndarray
 
 
 def average_precision(pred: np.ndarray, true: np.ndarray) -> float:
-    """Mean average precision, the standard IR definition (their ref. 19):
-    for each query, the mean of precision@i over the ranks i of the predicted
-    list at which a true neighbour appears (0 if none does)."""
+    """AP@n, n = |true| (200 here): for each query, the sum of precision@i over
+    the ranks i of the predicted list at which a true neighbour appears,
+    divided by n. True neighbours that are never retrieved count as misses, so
+    one correct item at rank 1 out of 200 scores 1/200, not 1."""
+    hit = _hits(pred, true)
+    prec = np.cumsum(hit, axis=1) / np.arange(1, hit.shape[1] + 1)
+    return float(((prec * hit).sum(1) / true.shape[1]).mean())
+
+
+def ap_retrieved(pred: np.ndarray, true: np.ndarray) -> float:
+    """The same sum divided by the number of true neighbours actually
+    retrieved, a convention found in parts of the hashing literature. It
+    ignores misses (one hit at rank 1 scores 1.0) and is reported only as the
+    quantity revision 3 used by mistake as AP; it is not average precision."""
     hit = _hits(pred, true)
     prec = np.cumsum(hit, axis=1) / np.arange(1, hit.shape[1] + 1)
     return float(((prec * hit).sum(1) / np.maximum(hit.sum(1), 1)).mean())
+
+
+def recall(pred: np.ndarray, true: np.ndarray) -> float:
+    """Fraction of the true neighbours among the predicted list (recall@n)."""
+    return float(_hits(pred, true).mean())
 
 
 def list_overlap(pred: np.ndarray, true: np.ndarray) -> float:
@@ -172,23 +194,33 @@ def _hits(pred, true):
     return np.take_along_axis(want, pred, axis=1)
 
 
-METRICS = ("map", "overlap")
+METRICS = ("ap", "recall", "overlap", "ap_retrieved")
 
 
 def _score(pred, true) -> np.ndarray:
-    return np.array([average_precision(pred, true), list_overlap(pred, true)])
+    return np.array([average_precision(pred, true), recall(pred, true),
+                     list_overlap(pred, true), ap_retrieved(pred, true)])
 
 
-def score_binary(tags: sp.csr_matrix, queries, true, rng) -> np.ndarray:
-    """Euclidean distance between binary tags (= Hamming); ties at random."""
+def rank_binary(tags: sp.csr_matrix, queries, top: int, rng) -> np.ndarray:
+    """Predicted neighbours by Euclidean distance between binary tags (=
+    Hamming); exact ties broken at random."""
     ones = np.asarray(tags.sum(1)).ravel()
     overlap = (tags[queries] @ tags.T).toarray()
     dist = ones[queries][:, None] + ones[None, :] - 2 * overlap
-    return _score(_nearest(dist, queries, true.shape[1], rng), true)
+    return _nearest(dist, queries, top, rng)
+
+
+def rank_dense(h: np.ndarray, queries, top: int) -> np.ndarray:
+    return _nearest(_sqdist(h[queries], h), queries, top, None)
+
+
+def score_binary(tags: sp.csr_matrix, queries, true, rng) -> np.ndarray:
+    return _score(rank_binary(tags, queries, true.shape[1], rng), true)
 
 
 def score_dense(h: np.ndarray, queries, true) -> np.ndarray:
-    return _score(_nearest(_sqdist(h[queries], h), queries, true.shape[1], None), true)
+    return _score(rank_dense(h, queries, true.shape[1]), true)
 
 
 # ---------------------------------------------------------------- experiments
@@ -200,19 +232,30 @@ def _summ(v) -> dict:
             for i, m in enumerate(METRICS)}
 
 
-def replicate(cfg: Config, trials: int = TRIALS, datasets=DATASETS, log=print) -> dict:
-    """The 2017 comparison with random matrices, on their three datasets.
+REPL_KEYS = ("lsh", "lsh_sign", "fly_20k", "fly_10d", "random_20k")
 
-    Methods: dense and sign LSH with k projections; the fly with m = 20k
-    (operation-matched, their Fig. 2B) and m = 10d (their Fig. 3); random tag
-    selection from the m = 20k expansion (their Fig. 2B control); and, as our
-    addition, dense LSH given the operation count of the m = 10d fly under
-    their accounting (10d cells x 0.1d additions = 2d operations x d/2 bits).
+
+def replicate(cfg: Config, trials: int = TRIALS, datasets=DATASETS, log=print) -> dict:
+    """The 2017 comparison with random matrices (a reimplementation: several
+    details are not specified in the paper, see PROVENANCE).
+
+    Methods: real-valued and sign LSH with k projections; the fly with
+    m = 20k (operation-matched, their Fig. 2B) and m = 10d (their Fig. 3);
+    random tag selection from the m = 20k expansion (their Fig. 2B control);
+    and, as our addition, real-valued LSH given the projection arithmetic of
+    the m = 10d fly under their accounting (10d cells x s additions = 2d
+    operations per projection x 10s/2 projections).
+
+    Ground truth is the top 2% by Euclidean distance on the raw features (as
+    the paper states); the same predictions are also scored against neighbours
+    on the row-centred input the hashes see ("truth_centred"), the choice made
+    in the FlyLSH code.
     """
     from .experiments import save
     t0 = time.time()
     out = {"protocol": {"n": N_DATA, "queries": N_QUERIES, "top": TOP, "trials": trials,
-                        "hash_lengths": list(HASH_LENGTHS), "sampling": SAMPLING},
+                        "hash_lengths": list(HASH_LENGTHS), "sampling": SAMPLING,
+                        "metrics": list(METRICS)},
            "reported": {"mnist_k4_lsh": 0.160, "mnist_k4_fly_10d": 0.448,
                         "sift_k4_random_20k": 0.177, "sift_k4_wta_20k": 0.324},
            "datasets": {}}
@@ -224,114 +267,194 @@ def replicate(cfg: Config, trials: int = TRIALS, datasets=DATASETS, log=print) -
         top = int(TOP * n)
         s = max(1, int(round(SAMPLING * d)))
         ops_bits = int(round(10 * d * s / (2 * d)))
-        keys = ("lsh", "lsh_sign", "fly_20k", "fly_10d", "random_20k")
-        res = {k: [] for k in keys + ("lsh_ops_10d",)}
+        res = {t: {k: [] for k in REPL_KEYS + ("lsh_ops_10d",)} for t in ("raw", "centred")}
         for t in range(trials):
             rng = np.random.default_rng(1000 + t)
             q = rng.choice(n, N_QUERIES, replace=False)
-            true = truth(x, q, top)
+            truths = {"raw": truth(x, q, top), "centred": truth(xc, q, top)}
             y10 = x32 @ fly_matrix(d, 10 * d, rng)
-            row = {key: [] for key in keys}
+            preds = {key: [] for key in REPL_KEYS}
             for k in HASH_LENGTHS:
                 g = xc @ rng.normal(size=(d, k))
-                row["lsh"].append(score_dense(g, q, true))
-                row["lsh_sign"].append(score_binary(sp.csr_matrix(g > 0, dtype=np.float32), q, true, rng))
+                preds["lsh"].append(rank_dense(g, q, top))
+                preds["lsh_sign"].append(rank_binary(sp.csr_matrix(g > 0, dtype=np.float32), q, top, rng))
                 y20 = x32 @ fly_matrix(d, 20 * k, rng)
-                row["fly_20k"].append(score_binary(winners(y20, k), q, true, rng))
-                row["random_20k"].append(score_dense(y20[:, rng.choice(20 * k, k, replace=False)], q, true))
-                row["fly_10d"].append(score_binary(winners(y10, k), q, true, rng))
-            for key in keys:
-                res[key].append(row[key])
-            res["lsh_ops_10d"].append(score_dense(xc @ rng.normal(size=(d, ops_bits)), q, true))
+                preds["fly_20k"].append(rank_binary(winners(y20, k), q, top, rng))
+                preds["random_20k"].append(rank_dense(y20[:, rng.choice(20 * k, k, replace=False)], q, top))
+                preds["fly_10d"].append(rank_binary(winners(y10, k), q, top, rng))
+            ops = rank_dense(xc @ rng.normal(size=(d, ops_bits)), q, top)
+            for tn, tr in truths.items():
+                for key in REPL_KEYS:
+                    res[tn][key].append([_score(pk, tr) for pk in preds[key]])
+                res[tn]["lsh_ops_10d"].append(_score(ops, tr))
             if (t + 1) % 10 == 0:
                 log(f"  {name}: trial {t + 1}/{trials}")
         out["datasets"][name] = {"d": d, "sampled": s, "lsh_ops_10d_bits": ops_bits,
-                                 **{key: _summ(v) for key, v in res.items()}}
+                                 **{key: _summ(v) for key, v in res["raw"].items()},
+                                 "truth_centred": {key: _summ(v) for key, v in res["centred"].items()}}
         r = out["datasets"][name]
         i4 = HASH_LENGTHS.index(4)
-        log(f"  {name} k=4 mAP: LSH {r['lsh']['map']['mean'][i4]:.3f}  "
-            f"fly 20k {r['fly_20k']['map']['mean'][i4]:.3f}  fly 10d {r['fly_10d']['map']['mean'][i4]:.3f}  "
-            f"random 20k {r['random_20k']['map']['mean'][i4]:.3f}  "
-            f"LSH at 10d ops ({ops_bits} bits) {r['lsh_ops_10d']['map']['mean']:.3f}")
+        log(f"  {name} k=4 AP: LSH {r['lsh']['ap']['mean'][i4]:.3f}  "
+            f"fly 20k {r['fly_20k']['ap']['mean'][i4]:.3f}  fly 10d {r['fly_10d']['ap']['mean'][i4]:.3f}  "
+            f"random 20k {r['random_20k']['ap']['mean'][i4]:.3f}  "
+            f"LSH at 10d ops ({ops_bits}) {r['lsh_ops_10d']['ap']['mean']:.3f}")
         save({**out, "seconds": time.time() - t0}, "replication.json")
+    out["dimension_sweep"] = dimension_sweep(cfg, log=log)
     out["seconds"] = time.time() - t0
     save(out, "replication.json")
     return out
 
 
-def connectome(cfg: Config, trials: int = TRIALS, B: int = 50, datasets=DATASETS, log=print) -> dict:
-    """The same protocol and data, hashed through the measured wiring.
+def dimension_sweep(cfg: Config, dims=(8, 16, 32, 64, 128, 256, 512), trials: int = 10,
+                    ks=(4, 16), log=print) -> dict:
+    """One distribution, varying input dimension: MNIST reduced by PCA to d
+    components, ground truth on that reduced input, everything else as in
+    `replicate`. Isolates d from dataset differences (it does not isolate it
+    from the information PCA discards, which is common to all methods)."""
+    x = load_benchmark(cfg, "mnist")
+    out = {"dims": list(dims), "ks": list(ks), "trials": trials, "rows": []}
+    for d in dims:
+        z = pca(x, d)
+        zc = centre(z)
+        z32 = zc.astype(np.float32)
+        n = len(z)
+        top = int(TOP * n)
+        s = max(1, int(round(SAMPLING * d)))
+        ops_bits = max(1, int(round(10 * d * s / (2 * d))))
+        acc = {"lsh": [], "fly_20k": [], "fly_10d": [], "lsh_ops_10d": []}
+        for t in range(trials):
+            rng = np.random.default_rng(7000 + t)
+            q = rng.choice(n, N_QUERIES, replace=False)
+            true = truth(z, q, top)
+            y10 = z32 @ fly_matrix(d, 10 * d, rng)
+            acc["lsh"].append([score_dense(zc @ rng.normal(size=(d, k)), q, true) for k in ks])
+            acc["fly_20k"].append([score_binary(winners(z32 @ fly_matrix(d, 20 * k, rng), k), q, true, rng)
+                                   for k in ks])
+            acc["fly_10d"].append([score_binary(winners(y10, k), q, true, rng) for k in ks])
+            acc["lsh_ops_10d"].append(score_dense(zc @ rng.normal(size=(d, ops_bits)), q, true))
+        row = {"d": d, "sampled": s, "lsh_ops_10d_bits": ops_bits,
+               **{key: _summ(v) for key, v in acc.items()}}
+        out["rows"].append(row)
+        log(f"  dimension {d}: k=4 AP LSH {row['lsh']['ap']['mean'][0]:.3f} "
+            f"fly10d {row['fly_10d']['ap']['mean'][0]:.3f} LSH@ops {row['lsh_ops_10d']['ap']['mean']:.3f}")
+    return out
 
-    Each dataset is reduced by PCA to one component per glomerulus; every
-    trial assigns components to glomeruli by a fresh random permutation (the
-    pairing of image or word features with glomeruli has no meaning), draws
-    new queries, and scores every matrix on that same input. Ground truth is
-    the top 2% by Euclidean distance on the reduced input, which is what all
-    hashes see. Each matrix's score is averaged over trials; the measured
-    wiring is then ranked among its B curveball nulls.
+
+def connectome(cfg: Config, trials: int = TRIALS, B: int = 50, datasets=DATASETS,
+               B_ablation: int = 20, log=print) -> dict:
+    """The same protocol and data, hashed through the MaleCNS connectome (right
+    hemisphere). See `score_wiring`. For odours the nulls are the first B of
+    the primary analysis's pool. A normalisation ablation repeats each dataset
+    without row-centring (B_ablation nulls). Results are merged by dataset
+    into results/connectome_benchmarks.json."""
+    from .experiments import context, null_pool, save, ROOT
+    import json
+    path = ROOT / "results" / "connectome_benchmarks.json"
+    out = json.loads(path.read_text()) if path.exists() else {}
+    out.update({"B": B, "trials": trials, "B_ablation": B_ablation,
+                "datasets": out.get("datasets", {})})
+    ctx = context(cfg)
+    for name in datasets:
+        p = ctx.proj if name == "odours" else ctx.full
+        pool = null_pool(p, 200)[:B] if name == "odours" else \
+            null_pool(fh.Projection("b", p.binary, p.glomeruli), B)
+        x = load_benchmark(cfg, name)
+        res = score_wiring(name, x, p, pool, trials, log)
+        res["no_centring"] = score_wiring(name, x, p, pool[:B_ablation], trials, log,
+                                          centre_input=False, controls=True)
+        out["datasets"][name] = res
+        save(out, "connectome_benchmarks.json")
+    return out
+
+
+CONTROLS = {"in_equal": dict(equal_in=True), "out_equal": dict(equal_out=True),
+            "both_equal": dict(equal_in=True, equal_out=True)}
+
+
+def score_wiring(name: str, x: np.ndarray, p: fh.Projection, pool, trials: int,
+                 log=print, centre_input: bool = True, controls: bool = True) -> dict:
+    """One wiring on one dataset under the 2017 protocol.
+
+    For odours, `x` is already over the glomeruli of `p`. Other datasets are
+    reduced by PCA to one component per glomerulus, and every trial assigns
+    components to glomeruli by a fresh random permutation (image or word
+    features have no glomerulus). Every trial draws new queries and scores
+    every matrix on the same input; ground truth is the top 2% by Euclidean
+    distance on that input before centring. Each matrix's score is averaged
+    over trials and the wiring is ranked among the nulls in `pool`.
+
+    Besides the nulls (both degree sequences kept) every trial draws one
+    matrix of each equal-connection control (`CONTROLS`: inputs per cell made
+    even, fan-out made even, or both, always nnz(M) connections) and one of
+    the six-input construction of 2017 (which also changes nnz).
+
+    Row-centring subtracts mean(x) * inputs(i) from cell i's drive, which
+    reorders winners only when inputs per cell differ; `centre_input=False`
+    removes it (ablation).
     """
-    from .experiments import context, null_pool, save
-    t0 = time.time()
-    real = context(cfg).full                       # all olfactory glomeruli, right hemisphere
-    wiring = real.binary.astype(np.float32)
+    wiring = p.binary.astype(np.float32)
     g, m = wiring.shape
-    nulls = [q.matrix.astype(np.float32)
-             for q in null_pool(fh.Projection("b", real.binary, real.glomeruli), B)]
+    nulls = [q.matrix.astype(np.float32) for q in pool]
     nnz = int(wiring.sum())
     sizes = tuple(sorted(set(HASH_LENGTHS) | {int(round(0.05 * m))}))
     ops_bits = max(1, int(round(nnz / (2 * g))))  # 2017 accounting: d mult + d add per projection
-    out = {"n_glomeruli": g, "n_cells": m, "nnz": nnz, "inputs_mean": float(wiring.sum(0).mean()),
-           "sizes": list(sizes), "B": B, "trials": trials, "lsh_ops_matched_bits": ops_bits,
-           "reduction": "PCA to n_glomeruli components, random component-glomerulus assignment per trial",
-           "datasets": {}}
-    for name in datasets:
-        z = pca(load_benchmark(cfg, name), g)
-        n = len(z)
-        top = int(TOP * n)
-        acc = {k: [] for k in ("real", "null", "random_2017", "lsh", "lsh_sign", "lsh_ops")}
-        for t in range(trials):
-            rng = np.random.default_rng(5000 + t)
-            zt = centre(z[:, rng.permutation(g)])
-            z32 = zt.astype(np.float32)
-            q = rng.choice(n, N_QUERIES, replace=False)
-            true = truth(zt, q, top)
-            tie_seed = int(rng.integers(2**31))
+    z = x if name == "odours" else pca(x, g)
+    n = len(z)
+    top = int(TOP * n)
+    ctrl = list(CONTROLS) if controls else []
+    acc = {k: [] for k in ("real", "null", "random_2017", "lsh", "lsh_sign", "lsh_ops", *ctrl)}
+    pb = fh.Projection("b", p.binary, p.glomeruli)
+    for t in range(trials):
+        rng = np.random.default_rng(5000 + t)
+        zp = z if name == "odours" else z[:, rng.permutation(g)]
+        zt = centre(zp) if centre_input else zp
+        z32 = zt.astype(np.float32)
+        q = rng.choice(n, N_QUERIES, replace=False)
+        true = truth(zp, q, top)
+        tie_seed = int(rng.integers(2**31))
 
-            def fly(w):
-                y = z32 @ w
-                # the same tie-breaking draws for every matrix within a trial
-                tie = np.random.default_rng(tie_seed)
-                return [score_binary(winners(y, k), q, true, tie) for k in sizes]
-            acc["real"].append(fly(wiring))
-            acc["null"].append([fly(w) for w in nulls])
-            acc["random_2017"].append(fly(fly_matrix(g, m, rng, sampled=6)))
-            acc["lsh"].append([score_dense(zt @ rng.normal(size=(g, k)), q, true) for k in sizes])
-            acc["lsh_sign"].append([score_binary(sp.csr_matrix(zt @ rng.normal(size=(g, k)) > 0,
-                                                               dtype=np.float32), q, true, rng)
-                                    for k in sizes])
-            acc["lsh_ops"].append(score_dense(zt @ rng.normal(size=(g, ops_bits)), q, true))
-            if (t + 1) % 10 == 0:
-                log(f"  {name}: trial {t + 1}/{trials}")
-        mean = {k: np.mean(v, 0) for k, v in acc.items()}   # null: (B, sizes, metric)
-        per_metric = {}
-        for j, met in enumerate(METRICS):
-            rows = []
-            for i, k in enumerate(sizes):
-                nd = mean["null"][:, i, j]
-                rt = stats.randomization_test(mean["real"][i, j], nd)
-                rows.append({"k": k, "real": float(mean["real"][i, j]),
-                             "null_mean": float(nd.mean()), "null_sd": float(nd.std(ddof=1)),
-                             "relative_difference": float(mean["real"][i, j] / nd.mean() - 1),
-                             "p_two_sided": rt["p_two_sided"],
-                             "random_2017": float(mean["random_2017"][i, j]),
-                             "lsh": float(mean["lsh"][i, j]),
-                             "lsh_sign": float(mean["lsh_sign"][i, j])})
-            per_metric[met] = {"rows": rows, "lsh_ops": float(mean["lsh_ops"][j])}
-        out["datasets"][name] = per_metric
-        r4 = per_metric["map"]["rows"][sizes.index(4)]
-        log(f"  {name} k=4 mAP: real {r4['real']:.3f}  null {r4['null_mean']:.3f}  "
-            f"2017-random {r4['random_2017']:.3f}  LSH {r4['lsh']:.3f}  p {r4['p_two_sided']:.3f}")
-        save({**out, "seconds": time.time() - t0}, "connectome_benchmarks.json")
-    out["seconds"] = time.time() - t0
-    save(out, "connectome_benchmarks.json")
-    return out
+        def fly(w):
+            y = z32 @ w
+            # the same tie-breaking draws for every matrix within a trial
+            tie = np.random.default_rng(tie_seed)
+            return [score_binary(winners(y, k), q, true, tie) for k in sizes]
+        acc["real"].append(fly(wiring))
+        acc["null"].append([fly(w) for w in nulls])
+        acc["random_2017"].append(fly(fly_matrix(g, m, rng, sampled=6)))
+        for c in ctrl:
+            w = fh.margin_control(pb, seed=int(rng.integers(2**31)), **CONTROLS[c])
+            acc[c].append(fly(w.matrix.astype(np.float32)))
+        acc["lsh"].append([score_dense(zt @ rng.normal(size=(g, k)), q, true) for k in sizes])
+        acc["lsh_sign"].append([score_binary(sp.csr_matrix(zt @ rng.normal(size=(g, k)) > 0,
+                                                           dtype=np.float32), q, true, rng)
+                                for k in sizes])
+        acc["lsh_ops"].append(score_dense(zt @ rng.normal(size=(g, ops_bits)), q, true))
+        if (t + 1) % 10 == 0:
+            log(f"  {name}: trial {t + 1}/{trials}")
+    mean = {k: np.mean(v, 0) for k, v in acc.items()}   # null: (B, sizes, metric)
+    per_metric = {}
+    for j, met in enumerate(METRICS):
+        rows = []
+        for i, k in enumerate(sizes):
+            nd = mean["null"][:, i, j]
+            rt = stats.randomization_test(mean["real"][i, j], nd)
+            rows.append({"k": k, "real": float(mean["real"][i, j]),
+                         "null_mean": float(nd.mean()), "null_sd": float(nd.std(ddof=1)),
+                         "relative_difference": float(mean["real"][i, j] / nd.mean() - 1),
+                         "z": float((mean["real"][i, j] - nd.mean()) / nd.std(ddof=1)),
+                         "p_two_sided": rt["p_two_sided"],
+                         "random_2017": float(mean["random_2017"][i, j]),
+                         **{c: float(mean[c][i, j]) for c in ctrl},
+                         "lsh": float(mean["lsh"][i, j]),
+                         "lsh_sign": float(mean["lsh_sign"][i, j])})
+        per_metric[met] = {"rows": rows, "lsh_ops": float(mean["lsh_ops"][j])}
+    r4 = per_metric["ap"]["rows"][sizes.index(4)]
+    log(f"  {name}{'' if centre_input else ' (no centring)'} k=4 AP: real {r4['real']:.3f}  "
+        f"null {r4['null_mean']:.3f}  2017 {r4['random_2017']:.3f}  "
+        + "  ".join(f"{c} {r4[c]:.3f}" for c in ctrl)
+        + f"  LSH {r4['lsh']:.3f}  p {r4['p_two_sided']:.3f}")
+    return {**per_metric, "n_glomeruli": g, "n_cells": m, "nnz": nnz,
+            "inputs_mean": float(wiring.sum(0).mean()), "sizes": list(sizes),
+            "lsh_ops_matched_bits": ops_bits, "centred": centre_input,
+            "input": "DoOR mixtures, measured glomeruli" if name == "odours"
+            else "PCA, random component-glomerulus assignment per trial"}

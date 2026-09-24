@@ -1,16 +1,39 @@
-"""The 2017 scores and the fly construction used in flypath.replication."""
+"""Scores and the fly construction used in flypath.replication."""
 
 import numpy as np
 
 from flypath import replication as r
 
 
-def test_average_precision_hand_example():
-    # hits at ranks 1 and 3: (1/1 + 2/3) / 2
+def test_ap_counts_unretrieved_neighbours():
+    # hits at ranks 1 and 3 among 4 true neighbours: (1/1 + 2/3) / 4
     pred = np.array([[0, 5, 1, 6]])
     true = np.array([[0, 1, 2, 3]])
-    assert np.isclose(r.average_precision(pred, true), (1 + 2 / 3) / 2)
-    assert r.average_precision(np.array([[7, 8]]), np.array([[0, 1]])) == 0.0
+    assert np.isclose(r.average_precision(pred, true), (1 + 2 / 3) / 4)
+    assert np.isclose(r.recall(pred, true), 0.5)
+
+
+def test_ap_rank_one_only_is_not_perfect():
+    # the reviewer's counterexample: one correct neighbour at rank 1 of 200
+    true = np.arange(200)[None, :]
+    pred = np.concatenate([[0], np.arange(1000, 1199)])[None, :]
+    assert np.isclose(r.average_precision(pred, true), 1 / 200)
+    assert r.ap_retrieved(pred, true) == 1.0          # the flawed convention
+
+
+def test_ap_extremes():
+    true = np.arange(10)[None, :]
+    assert r.average_precision(true.copy(), true) == 1.0
+    assert r.recall(true.copy(), true) == 1.0
+    none = np.arange(100, 110)[None, :]
+    assert r.average_precision(none, true) == 0.0
+    assert r.ap_retrieved(none, true) == 0.0
+
+
+def test_ap_perfect_set_wrong_order_below_one():
+    true = np.arange(4)[None, :]
+    pred = np.array([[9, 0, 1, 2]])                   # three hits, shifted by one
+    assert np.isclose(r.average_precision(pred, true), (1 / 2 + 2 / 3 + 3 / 4) / 4)
 
 
 def test_list_overlap_matches_reference_code():

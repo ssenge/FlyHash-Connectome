@@ -10,7 +10,8 @@
 \newcommand{\NNZ}{7{,}110}
 \newcommand{\InputsFull}{5.28}
 \newcommand{\Inputs}{3.87}
-\newcommand{\PNPartners}{5.59}
+\newcommand{\PNPartners}{4.04}
+\newcommand{\PNPartnersFull}{5.50}
 \newcommand{\FanMin}{19}
 \newcommand{\FanMax}{473}
 \newcommand{\FanMaxGlom}{DC1}
@@ -31,7 +32,7 @@
 \newcommand{\BootHi}{-0.8\%}
 \newcommand{\EquivPrimary}{holds}
 \newcommand{\MarginPrimary}{5\%}
-\newcommand{\MdeUp}{2.5\%}
+\newcommand{\MdeUp}{3.0\%}
 \newcommand{\MdeDown}{2.5\%}
 \newcommand{\MinHolm}{1.000}
 \newcommand{\SecPMin}{0.338}
@@ -40,6 +41,7 @@
 \newcommand{\SecRelMax}{-0.9\%}
 \newcommand{\EquivTwoFive}{does not hold}
 \newcommand{\NullsAbove}{199}
+\newcommand{\PrimaryPHolmAll}{0.100}
 \newcommand{\TieConflictMax}{2.3\%}
 \newcommand{\QRealP}{0.005}
 \newcommand{\QRealRel}{+3.7\%}
@@ -94,47 +96,136 @@ Normalised / angular metric & -2.4 to -1.7 & 0.049 \\
 Tie rules (index, include, 2 seeds) & -2.4 to -2.1 & 0.049 \\
 Synapse-weighted & -1.1 & 0.488 \\
 Synthetic inputs (3) & -3.1 to +0.8 & 0.049--0.244 \\}
-\newcommand{\ReplRows}{SIFT & 4 & 0.174 & 0.180 & 0.283 & 0.357 & 2.1$\times$ \\
-SIFT & 16 & 0.499 & 0.500 & 0.576 & 0.608 & 1.2$\times$ \\
-GloVe & 4 & 0.055 & 0.056 & 0.081 & 0.093 & 1.7$\times$ \\
-GloVe & 16 & 0.134 & 0.135 & 0.150 & 0.153 & 1.1$\times$ \\
-MNIST & 4 & 0.159 & 0.165 & 0.272 & 0.365 & 2.3$\times$ \\
-MNIST & 16 & 0.516 & 0.516 & 0.583 & 0.622 & 1.2$\times$ \\}
-\newcommand{\ReplMnistLsh}{0.159}
-\newcommand{\ReplMnistFly}{0.365}
-\newcommand{\ReplMnistRatio}{2.3}
+\newcommand{\ReplRows}{SIFT & 128 & 4 & 0.033 (0.13) & 0.034 & 0.064 & 0.093 (0.22) & 2.8$\times$ \\
+SIFT & 128 & 16 & 0.198 (0.35) & 0.199 & 0.245 & 0.269 (0.41) & 1.4$\times$ \\
+GloVe & 300 & 4 & 0.002 (0.03) & 0.002 & 0.004 & 0.005 (0.05) & 2.2$\times$ \\
+GloVe & 300 & 16 & 0.016 (0.10) & 0.016 & 0.016 & 0.015 (0.08) & 1.0$\times$ \\
+MNIST & 784 & 4 & 0.031 (0.12) & 0.034 & 0.062 & 0.094 (0.20) & 3.1$\times$ \\
+MNIST & 784 & 16 & 0.221 (0.35) & 0.221 & 0.253 & 0.276 (0.40) & 1.2$\times$ \\
+Odours & 35 & 4 & 0.094 (0.22) & 0.093 & 0.128 & 0.159 (0.29) & 1.7$\times$ \\
+Odours & 35 & 16 & 0.393 (0.50) & 0.380 & 0.287 & 0.290 (0.42) & 0.7$\times$ \\}
+\newcommand{\ReplMnistLsh}{0.031}
+\newcommand{\ReplMnistFly}{0.094}
+\newcommand{\ReplMnistRatio}{3.1}
 \newcommand{\ReplOpsBitsMnist}{390}
-\newcommand{\ReplSiftRandom}{0.180}
-\newcommand{\ReplSiftWta}{0.283}
+\newcommand{\ReplMnistFlyRetr}{0.365}
+\newcommand{\ReplMnistRatioCentred}{3.1}
+\newcommand{\ReplMnistRecallRatio}{1.7}
+\newcommand{\ReplMnistOverlapRatio}{2.1}
+\newcommand{\ReplMnistLshRetr}{0.159}
+\newcommand{\ReplMnistLshOverlap}{0.081}
+\newcommand{\ReplSiftRandom}{0.034}
+\newcommand{\ReplSiftWta}{0.064}
+\newcommand{\ReplOdourRatio}{1.7}
 \newcommand{\ReplTrials}{50}
-\newcommand{\ReplOpsMin}{0.67}
-\newcommand{\ReplOpsMax}{0.97}
-\newcommand{\ReplFlyMax}{0.73}
-\newcommand{\ConnRows}{SIFT & 4 & 0.374 & 0.375 & -0.1 & 0.784 & 0.407 & 0.197 \\
-SIFT & 16 & 0.567 & 0.567 & +0.1 & 0.824 & 0.572 & 0.573 \\
-SIFT & 94 & 0.722 & 0.728 & -0.8 & 0.039 & 0.776 & 0.902 \\
-GloVe & 4 & 0.179 & 0.178 & +0.3 & 0.471 & 0.207 & 0.094 \\
-GloVe & 16 & 0.312 & 0.313 & -0.3 & 0.353 & 0.318 & 0.316 \\
-GloVe & 94 & 0.466 & 0.475 & -1.9 & 0.039 & 0.510 & 0.777 \\
-MNIST & 4 & 0.445 & 0.446 & -0.2 & 0.471 & 0.470 & 0.215 \\
-MNIST & 16 & 0.672 & 0.675 & -0.4 & 0.039 & 0.681 & 0.654 \\
-MNIST & 94 & 0.805 & 0.810 & -0.7 & 0.039 & 0.834 & 0.935 \\}
+\newcommand{\ReplOpsMin}{0.31}
+\newcommand{\ReplOpsMax}{0.81}
+\newcommand{\ReplFlyMax}{0.39}
+\newcommand{\BudgetRows}{SIFT & 128 & 16$\times$ & 65 & 0.507 & 0.389 \\
+GloVe & 300 & 38$\times$ & 150 & 0.306 & 0.030 \\
+MNIST & 784 & 98$\times$ & 390 & 0.807 & 0.392 \\
+Odours & 35 & 5$\times$ & 20 & 0.447 & 0.317 \\}
+\newcommand{\ConnRows}{SIFT & 4 & 0.101 & 0.101 & +0.0 & 0.941 & 0.104 & 0.043 \\
+SIFT & 16 & 0.234 & 0.233 & +0.4 & 0.431 & 0.236 & 0.252 \\
+SIFT & 94 & 0.381 & 0.387 & -1.7 & 0.039 & 0.448 & 0.642 \\
+GloVe & 4 & 0.022 & 0.022 & +0.0 & 0.980 & 0.025 & 0.008 \\
+GloVe & 16 & 0.066 & 0.066 & -0.1 & 0.941 & 0.070 & 0.081 \\
+GloVe & 94 & 0.153 & 0.159 & -3.5 & 0.039 & 0.182 & 0.431 \\
+MNIST & 4 & 0.144 & 0.144 & -0.2 & 0.784 & 0.155 & 0.058 \\
+MNIST & 16 & 0.322 & 0.325 & -0.8 & 0.118 & 0.329 & 0.327 \\
+MNIST & 94 & 0.475 & 0.482 & -1.6 & 0.039 & 0.517 & 0.711 \\
+Odours & 4 & 0.158 & 0.166 & -4.9 & 0.235 & 0.163 & 0.096 \\
+Odours & 16 & 0.295 & 0.300 & -1.5 & 0.275 & 0.309 & 0.396 \\
+Odours & 92 & 0.362 & 0.375 & -3.5 & 0.039 & 0.409 & 0.647 \\}
 \newcommand{\ConnB}{50}
 \newcommand{\ConnTrials}{20}
 \newcommand{\ConnGlom}{51}
 \newcommand{\ConnCells}{1{,}886}
-\newcommand{\ConnBigK}{94}
-\newcommand{\ConnRelMin}{-1.9\%}
-\newcommand{\ConnRelMax}{+0.3\%}
-\newcommand{\ConnPMin}{0.039}
+\newcommand{\ConnRelMin}{-10.2\%}
+\newcommand{\ConnRelMax}{+1.8\%}
 \newcommand{\ConnNSig}{6}
-\newcommand{\ConnNTests}{18}
+\newcommand{\ConnNTests}{24}
+\newcommand{\ConnPFloor}{0.039}
 \newcommand{\ConnOpsBits}{98}
-\newcommand{\ConnOpsMin}{0.78}
-\newcommand{\ConnOpsMax}{0.94}
-\newcommand{\ConnFlyBigMin}{0.47}
-\newcommand{\ConnFlyBigMax}{0.80}
-\newcommand{\ConnRandGainMax}{20\%}
-\newcommand{\ConnMnistReal}{0.445}
-\newcommand{\ConnMnistLsh}{0.215}
-\newcommand{\ConnMnistRatio}{2.1}
+\newcommand{\ConnOpsWins}{4}
+\newcommand{\ConnNData}{4}
+\newcommand{\ConnRandGainMax}{19\%}
+\newcommand{\ConnMnistReal}{0.144}
+\newcommand{\ConnMnistLsh}{0.058}
+\newcommand{\ConnMnistRatio}{2.5}
+\newcommand{\ConnOdourRatio}{1.6}
+\newcommand{\ConnOdourRel}{-3.5\%}
+\newcommand{\ConnOdourP}{0.039}
+\newcommand{\ConnOdourOpsBits}{102}
+\newcommand{\ConnOdourOps}{0.653}
+\newcommand{\ConnOdourFlyBig}{0.362}
+\newcommand{\ConnOdourBigK}{92}
+\newcommand{\DimRows}{8 & 1$\times$ & 0.172 & 0.053 & 0.3$\times$ & 5 & 0.216 & 0.083 \\
+16 & 2$\times$ & 0.109 & 0.110 & 1.0$\times$ & 10 & 0.323 & 0.229 \\
+32 & 4$\times$ & 0.070 & 0.143 & 2.1$\times$ & 15 & 0.368 & 0.293 \\
+64 & 8$\times$ & 0.056 & 0.130 & 2.3$\times$ & 30 & 0.464 & 0.307 \\
+128 & 16$\times$ & 0.041 & 0.118 & 2.8$\times$ & 65 & 0.591 & 0.294 \\
+256 & 32$\times$ & 0.040 & 0.110 & 2.8$\times$ & 130 & 0.689 & 0.277 \\
+512 & 64$\times$ & 0.033 & 0.104 & 3.2$\times$ & 255 & 0.772 & 0.264 \\}
+\newcommand{\ControlRows}{SIFT & 4 & +0.0 & -2.4 & +4.6 & +3.9 & +3.2 & +0.3 & +6.2 \\
+SIFT & 94 & -1.7 & -5.8 & +15.9 & +11.7 & +15.6 & -1.7 & +13.5 \\
+GloVe & 4 & +0.0 & +5.8 & +4.8 & +10.2 & +11.4 & -0.1 & +12.8 \\
+GloVe & 94 & -3.5 & -6.8 & +17.7 & +9.5 & +14.8 & -3.8 & +7.5 \\
+MNIST & 4 & -0.2 & +0.1 & +3.1 & +4.1 & +7.2 & -0.3 & +5.1 \\
+MNIST & 94 & -1.6 & -5.4 & +7.8 & +2.2 & +7.1 & -1.6 & +2.7 \\
+Odours & 4 & -4.9 & +5.5 & +2.0 & +4.7 & -1.5 & -11.7 & +77.0 \\
+Odours & 92 & -3.5 & -2.9 & +3.2 & +0.9 & +8.9 & -2.7 & -6.5 \\}
+\newcommand{\CtrlOutMin}{+1\%}
+\newcommand{\CtrlOutMax}{+18\%}
+\newcommand{\CtrlInMin}{-7\%}
+\newcommand{\CtrlInMax}{+6\%}
+\newcommand{\ConnImgMin}{-3.5\%}
+\newcommand{\ConnImgMax}{+1.8\%}
+\newcommand{\CtrlBothMin}{-6.1\%}
+\newcommand{\CtrlBothMax}{+11.7\%}
+\newcommand{\CtrlSixMin}{-6.4\%}
+\newcommand{\CtrlSixMax}{+15.6\%}
+\newcommand{\AnimalRows}{MaleCNS R & m & 1{,}886 & 5.28 & 0.53 & +2.8 & -2.1 (0.020) & -2.6 (0.020) & -10.5 to +3.1 & +3.7 & +5.4 & 2.3 \\
+MaleCNS L & m & 1{,}865 & 5.30 & 0.54 & +5.0 & -1.0 (0.257) & -0.8 (0.376) & -8.0 to +11.2 & +4.2 & +6.0 & 2.2 \\
+Hemibrain R & f & 1{,}761 & 6.05 & 0.50 & -0.0 & -0.6 (0.515) & -0.0 (0.990) & -6.3 to +7.4 & +2.9 & +2.9 & 2.3 \\
+FlyWire R & f & 2{,}406 & 5.00 & 0.47 & +11.8 & -2.8 (0.020) & -2.7 (0.020) & -8.9 to +4.1 & +1.4 & +4.2 & 2.4 \\
+FlyWire L & f & 2{,}378 & 5.12 & 0.49 & +17.5 & -1.6 (0.099) & -1.6 (0.079) & -6.6 to +3.6 & +3.0 & +4.2 & 2.9 \\
+BANC R & f & 2{,}046 & 5.03 & 0.57 & +6.0 & -3.0 (0.020) & -3.0 (0.020) & -8.9 to -0.1 & +3.3 & +4.7 & 2.3 \\
+BANC L & f & 2{,}089 & 5.18 & 0.55 & +9.1 & -1.3 (0.257) & -2.2 (0.059) & -9.0 to -0.2 & +1.8 & +4.5 & 2.3 \\}
+\newcommand{\AnimN}{7}
+\newcommand{\AnimAnimals}{4}
+\newcommand{\AnimB}{100}
+\newcommand{\AnimBBench}{50}
+\newcommand{\AnimTrials}{5}
+\newcommand{\AnimPFloor}{0.039}
+\newcommand{\AnimOdourPFloor}{0.020}
+\newcommand{\AnimCommon}{49}
+\newcommand{\AnimCommonOdour}{34}
+\newcommand{\AnimRelMin}{-10.5\%}
+\newcommand{\AnimRelMax}{+11.2\%}
+\newcommand{\AnimNNeg}{134}
+\newcommand{\AnimRelMedian}{-1.6\%}
+\newcommand{\AnimRelIQR}{-3.2\% to -0.3\%}
+\newcommand{\AnimNProto}{168}
+\newcommand{\AnimNFloor}{59}
+\newcommand{\AnimNFloorUp}{2}
+\newcommand{\AnimOdourMin}{-3.0\%}
+\newcommand{\AnimOdourMax}{-0.6\%}
+\newcommand{\AnimOdourNNeg}{7}
+\newcommand{\AnimOdourNSig}{3}
+\newcommand{\AnimMatchedMin}{-3.0\%}
+\newcommand{\AnimMatchedMax}{-0.0\%}
+\newcommand{\AnimMatchedNSig}{3}
+\newcommand{\AnimalsOdourNeg}{4}
+\newcommand{\AnimalsProtoNeg}{4}
+\newcommand{\AnimQzMin}{-0.0}
+\newcommand{\AnimQzMax}{17.5}
+\newcommand{\AnimQNSig}{6}
+\newcommand{\AnimBothMin}{+1.4\%}
+\newcommand{\AnimBothMax}{+4.2\%}
+\newcommand{\AnimLshMin}{2.2}
+\newcommand{\AnimLshMax}{2.9}
+\newcommand{\AnimCellsMin}{1{,}761}
+\newcommand{\AnimCellsMax}{2{,}406}
+\newcommand{\AnimInMin}{5.00}
+\newcommand{\AnimInMax}{6.05}

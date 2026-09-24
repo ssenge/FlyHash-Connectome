@@ -4,31 +4,33 @@ The fly hashing algorithm of Dasgupta, Stevens and Navlakha (*Science*, 2017)
 models the fly olfactory circuit as a locality-sensitive hash: glomerular
 input is expanded through a sparse binary projection onto Kenyon cells and
 sparsified by winner-take-all. They drew that projection at random because the
-wiring was unknown. This repository replaces it with the measured
-glomerulus-to-Kenyon-cell connectivity of the MaleCNS connectome (2026) and
-asks whether retrieval quality changes.
+wiring was unknown. This repository replaces it with the glomerulus-to-Kenyon-
+cell connectivity of four connectomes (MaleCNS, hemibrain, FlyWire, BANC: four
+animals, seven hemispheres) and asks whether retrieval changes.
 
 In short:
 
-- **The 2017 result replicates.** Rerunning their protocol on SIFT, GloVe and
-  MNIST with random matrices reproduces the LSH baseline (MNIST, hash length 4:
-  0.159 against 0.160 reported) and the fly hash's advantage at short hash
-  lengths (2.3x against 2.8x reported).
-- **It survives the measured wiring.** Through the MaleCNS projection (51
-  glomeruli, 1,886 Kenyon cells, every connection) the fly hash keeps its
-  advantage over LSH at short hash lengths, and scores within about two percent
-  of uniform rewirings with the same degrees, slightly below them at large hash
-  sizes.
-- **On odours** (DoOR mixtures) the measured wiring is about 2% below those
-  rewirings, a deficit that disappears when unmeasured responses are imputed.
-  Its pairing of glomeruli is itself non-random.
-- **The advantage is per active cell, not per operation.** The headline 2017
-  network uses up to ~100x more operations than the LSH it is compared with;
-  LSH given equal operations wins on all three benchmarks. On odours, with only
-  35 inputs, the fly hash leads sign codes of equal operation count from k = 32.
+- **The 2017 pattern holds in a reimplementation.** On SIFT, GloVe and MNIST
+  (and odour mixtures), the fly hash beats k Gaussian projections at short hash
+  lengths (3.1x in AP@200 on MNIST at k = 4), and the lead shrinks with k.
+  The published absolute values are not reproduced: the paper's score is
+  undefined, and two protocol details come from later code.
+- **The connectomes behave like degree-preserving random matrices.** They keep
+  the fly hash's advantage and retrieve within a few percent of uniform
+  rewirings with the same degrees, slightly below them at large hash sizes.
+  Their pairing of glomeruli is structured in most reconstructions but does
+  not help retrieval.
+- **What costs retrieval is the skewed fan-out.** At equal connection count,
+  giving every glomerulus the same number of Kenyon cells improves retrieval
+  (up to +18% on image and word input); equalising inputs per cell does not.
+- **The advantage is per active cell, not per operation.** Real-valued Gaussian
+  projections given the same projection arithmetic as the fly network retrieve
+  better on every dataset and input dimension tested.
+- **On odours** (DoOR mixtures) the MaleCNS connectome scores about 2% below
+  its rewirings; the deficit disappears when unmeasured responses are imputed.
 
-These are statements about a binary rate-free model. They do not establish
-what the measured structure is for.
+These are statements about a binary rate-free model and one task family. They
+do not establish what the measured structure is for.
 
 ![result](results/flyhash.png)
 
@@ -50,9 +52,9 @@ Two-stage bootstrap 90% interval for the relative difference at the primary size
 
 Fly hash / Gaussian sign code at k = 92: 1.37x at k bits, 0.90x at matched storage (523 bits), 1.33x at matched operations (102 bits).
 
-2017 protocol with random matrices, MNIST, k = 4: LSH 0.159 (reported 0.160), fly hash 0.365 (reported 0.448).
+2017 protocol with random matrices, MNIST, k = 4: LSH 0.031 (reported 0.160), fly hash 0.094 (reported 0.448).
 
-Measured wiring on SIFT, GloVe and MNIST (PCA to 51 inputs): -1.9% to +0.3% relative to 50 curveball nulls across 18 dataset-size combinations.
+Connectome under the 2017 protocol (SIFT, GloVe, MNIST via PCA; odours): -10.2% to +1.8% relative to 50 curveball nulls across 24 dataset-size combinations.
 
 Coverage of the 90% interval in simulation: 100% (previous procedure: 87%).
 
@@ -68,7 +70,7 @@ power table, coverage study and curveball mixing diagnostics are in
 ## Try it
 
 **[Interactive demo](https://ssenge.github.io/FlyHash-Connectome/web/mushroom-body-hash.html)**
-runs the hash in the browser on the measured wiring. Switching from **Real fly**
+runs the hash in the browser on the MaleCNS connectome. Switching from **Real fly**
 to **Scrambled** (a degree-preserving rewiring) replaces most cells in each tag
 while the retrieved odours change comparatively little. It illustrates the
 comparison; it is not the analysis.
@@ -82,9 +84,10 @@ python -m flypath checksums        # verifies every input against DATA_CHECKSUMS
 python -m flypath analyse          # primary analysis, architecture, mixing (~45-60 min)
 python -m flypath robustness       # 25 one-factor variations (~45 min)
 python -m flypath coverage         # coverage of the bootstrap interval (~60-90 min)
-python -m flypath replicate        # 2017 benchmarks: random matrices, then measured wiring (~2 h)
+python -m flypath replicate        # 2017 protocol: random matrices, dimension sweep, MaleCNS (~4 h)
+python -m flypath connectomes      # all four connectomes, seven hemispheres (~6 h)
 python -m flypath report           # figure, paper/generated.tex, supplement, README block
-pytest                             # 53 tests; the data-marked ones need the build
+pytest                             # tests; the data-marked ones need the build
 cd paper && pdflatex flyhash.tex && pdflatex flyhash.tex
 ```
 
@@ -96,7 +99,8 @@ The robustness check at a 5-synapse threshold needs a second graph:
 
 ## Method in brief
 
-- **Projection.** Right hemisphere, every reconstructed connection: 51
+- **Projection.** Every reconstructed connection, the same rule for all four
+  connectomes; the primary one is the MaleCNS right hemisphere: 51
   glomeruli, 1,886 Kenyon cells. Projection neurons are aggregated by
   glomerulus, so column sums are *distinct glomerular inputs*, not anatomical
   claw counts. The odour analysis uses the 35 glomeruli DoOR measures for at
@@ -116,10 +120,13 @@ The robustness check at a 5-synapse threshold needs a second graph:
   regenerating the benchmark, re-drawing null matrices) whose coverage is
   checked by simulation; a pre-specified ±5% equivalence margin; power under a
   shift model.
-- **2017 protocol.** 10,000 vectors each of SIFT, GloVe, MNIST; 1,000 queries;
-  top 2% neighbours; mean average precision over 50 trials; fly with m = 20k or
-  10d Kenyon cells, each sampling 10% of inputs. For the measured wiring, each
-  dataset is reduced by PCA to one component per glomerulus.
+- **2017 protocol (reimplemented).** 10,000 vectors each of SIFT, GloVe,
+  MNIST; 1,000 queries; top 2% neighbours; AP@200 and recall@200 over 50
+  trials; fly with m = 20k or 10d Kenyon cells, each sampling 10% of inputs.
+  For the connectomes, image and word data are reduced by PCA to one component
+  per glomerulus. The provenance of every protocol detail is in the paper.
+- **Controls.** Matrices with the connectome's number of connections and
+  either inputs per cell, fan-out per glomerulus, or both made even.
 - **Baselines.** LSH with *k* projections (as in 2017); on odours, Gaussian sign
   codes at *k* bits, at matched storage (⌈log₂ C(m,k)⌉ bits) and at matched
   operations (nnz(M)/2d bits, the 2017 operation count).
@@ -130,11 +137,12 @@ The robustness check at a 5-synapse threshold needs a second graph:
 flypath/flyhash.py      wiring, nulls, hash, retrieval, odour data, budgets
 flypath/stats.py        randomization test, Holm, bootstrap, power, equivalence
 flypath/experiments.py  odour experiments; writes results/*.json
-flypath/replication.py  the 2017 benchmarks, random and measured wiring
+flypath/replication.py  the 2017 protocol, random matrices and connectomes
+flypath/connectomes.py  loaders for MaleCNS, hemibrain, FlyWire, BANC; the comparison
 flypath/report.py       figure, LaTeX numbers, supplement, README block
 paper/flyhash.tex       the paper; numbers come from paper/generated.tex
 results/                JSON results, figure, SUPPLEMENT.md
-tests/                  53 tests
+tests/                  unit and artifact tests
 web/                    the interactive demo
 ```
 
@@ -146,6 +154,9 @@ web/                    the interactive demo
   <https://male-cns.janelia.org/>.
 - Odours: D. Münch and C. G. Galizia, DoOR 2.0, *Scientific Reports* 6:21841
   (2016), data at commit `db323a4` of ropensci/DoOR.data.
+- Further connectomes: hemibrain v1.2 (Scheffer et al., *eLife* 2020), FlyWire
+  v783 (Dorkenwald et al., *Nature* 2024; annotations Schlegel et al., *Nature*
+  2024), BANC v888 (Bates et al., *Nature* 2026).
 - Benchmarks: MNIST (LeCun et al.), SIFT-small (INRIA TEXMEX), GloVe 6B
   (Stanford NLP), downloaded on first use and checksummed.
 - The model tested: S. Dasgupta, C. F. Stevens and S. Navlakha, *Science*

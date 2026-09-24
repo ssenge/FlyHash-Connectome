@@ -54,30 +54,23 @@ def holm(pvals: list[float]) -> list[float]:
     return adj.tolist()
 
 
-def shift_power(null: np.ndarray, deltas: list[float], alpha: float = 0.05,
-                direction: str = "upper") -> dict:
-    """Power of the randomization test against a relative location shift.
+def shift_power(null: np.ndarray, deltas: list[float], alpha: float = 0.05) -> dict:
+    """Power of the two-sided randomization test against a relative location shift.
 
-    Model: the measured wiring behaves like a random wiring whose score is
-    multiplied by (1 + delta). For each held-out null draw b, its score is
-    shifted and tested against the remaining B-1 draws; power is the rejection
-    rate. This uses the empirical null distribution, not a normal
-    approximation, but the shift model itself is an assumption.
+    Model: the wiring behaves like a random wiring whose score is multiplied
+    by (1 + delta). For each held-out null draw b, its score is shifted and
+    tested two-sided against the remaining B-1 draws, exactly as the reported
+    test (`randomization_test`) is computed; power is the rejection rate. This
+    uses the empirical null distribution, not a normal approximation, but the
+    shift model itself is an assumption.
     """
     null = np.asarray(null, float)
-    b = len(null)
     out = {}
     for d in deltas:
         rej = 0
-        for i in range(b):
-            rest = np.delete(null, i)
-            s = null[i] * (1 + d)
-            if direction == "upper":
-                p = (1 + int((rest >= s).sum())) / b
-            else:
-                p = (1 + int((rest <= s).sum())) / b
-            rej += p <= alpha
-        out[f"{d:.4f}"] = rej / b
+        for i in range(len(null)):
+            rej += randomization_test(null[i] * (1 + d), np.delete(null, i))["p_two_sided"] <= alpha
+        out[f"{d:.4f}"] = rej / len(null)
     return out
 
 

@@ -131,6 +131,7 @@ def projection_summary(ctx: Context) -> dict:
         "inputs_median": float(np.median(p.inputs())),
         "inputs_max": int(p.inputs().max()),
         "pn_partners_mean": float(np.mean(p.meta["pn_partners"])),
+        "pn_partners_mean_full": float(np.mean(full.meta["pn_partners"])),
         "pn_partners_median": float(np.median(p.meta["pn_partners"])),
         "fan_out_min": int(p.fan_out().min()),
         "fan_out_max": int(p.fan_out().max()),
@@ -206,11 +207,7 @@ def primary(cfg: Config, B: int = 200, R: int = 200, B_sub: int = 20,
 
     deltas = [-0.10, -0.075, -0.05, -0.04, -0.03, -0.025, -0.02, -0.015, -0.01,
               -0.005, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.075, 0.10]
-    up = stats.shift_power(null[:, iP], [d for d in deltas if d > 0], direction="upper")
-    dn = stats.shift_power(null[:, iP], [d for d in deltas if d < 0], direction="lower")
-    power = {"upper": up, "lower": dn,
-             "mde80_upper": stats.smallest_detectable(up),
-             "mde80_lower": stats.smallest_detectable(dn)}
+    power = power_summary(null[:, iP], deltas)
 
     log(f"  two-stage bootstrap, R={R}, {B_sub} nulls per replicate ...")
 
@@ -234,6 +231,29 @@ def primary(cfg: Config, B: int = 200, R: int = 200, B_sub: int = 20,
            "seconds": time.time() - t0}
     save(res, "primary.json")
     return res
+
+
+def power_summary(null_primary: np.ndarray, deltas) -> dict:
+    """Two-sided power at each shift, split by direction for reporting."""
+    up = stats.shift_power(null_primary, [d for d in deltas if d > 0])
+    dn = stats.shift_power(null_primary, [d for d in deltas if d < 0])
+    return {"test": "two-sided", "upper": up, "lower": dn,
+            "mde80_upper": stats.smallest_detectable(up),
+            "mde80_lower": stats.smallest_detectable(dn)}
+
+
+def refresh_power(cfg: Config | None = None) -> dict:
+    """Recompute the power table of results/primary.json from its stored null
+    scores (no new simulation) and, given `cfg`, its projection summary."""
+    path = ROOT / "results" / "primary.json"
+    pr = json.loads(path.read_text())
+    if cfg is not None:
+        pr["projection"] = projection_summary(context(cfg))
+    null = np.array(pr["null_scores"])[:, pr["sizes"].index(pr["primary_k"])]
+    deltas = sorted(float(d) for d in {**pr["power"]["upper"], **pr["power"]["lower"]})
+    pr["power"] = power_summary(null, deltas)
+    save(pr, "primary.json")
+    return pr["power"]
 
 
 # ---------------------------------------------------------------- architecture
