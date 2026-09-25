@@ -32,7 +32,7 @@ In short:
 These are statements about a binary rate-free model and one task family. They
 do not establish what the measured structure is for.
 
-![result](results/flyhash.png)
+![result](results/fig_connectomes.png)
 
 ## Results
 

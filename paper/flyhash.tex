@@ -21,24 +21,24 @@
 \maketitle
 
 \begin{abstract}
-Dasgupta, Stevens and Navlakha (2017) described the \textit{Drosophila}
-olfactory circuit as a locality-sensitive hash whose glomerulus-to-Kenyon-cell
-projection was drawn at random because the wiring was unknown. We test that
-idealisation against four connectomes, MaleCNS, hemibrain, FlyWire and BANC:
-four animals, seven hemispheres. We reimplement the 2017 benchmark protocol
-(SIFT, GloVe, MNIST, plus odour mixtures) and recover its central pattern:
-with random matrices the fly hash beats $k$ Gaussian projections at short hash
-lengths ($\ReplMnistRatio\times$ in average precision on MNIST at $k=4$).
-Substituting the connectome keeps that advantage, and retrieval stays within a
-few percent of uniform rewirings that preserve both degree sequences, slightly
-below them at large hash sizes. At equal connection count, spreading each
-glomerulus's output evenly over Kenyon cells improves retrieval by up to
-\CtrlOutMax{}; equalising inputs per cell does not. On DoOR odour mixtures the
-MaleCNS connectome scores \PrimaryRel{} below its rewirings (two-sided
-$p=\PrimaryPtwo$), a deficit that disappears when unmeasured responses are
-imputed. Finally, the 2017 advantage is per active cell: real-valued Gaussian
-projections given the same projection arithmetic as the fly network beat it on
-every dataset.
+Dasgupta, Stevens and Navlakha (2017) showed that the \textit{Drosophila}
+olfactory circuit, modelled as a random sparse projection followed by
+winner-take-all, is a locality-sensitive hash that beats classical LSH. The
+projection was random because the wiring was unknown. We test it against four
+electron-microscopy connectomes (MaleCNS, hemibrain, FlyWire, BANC; four
+animals, seven hemispheres) and report three findings. First, the 2017 pattern
+holds in a reimplementation of its protocol on SIFT, GloVe, MNIST and odour
+mixtures: the fly hash beats $k$ Gaussian projections at short hash lengths
+($\ReplMnistRatio\times$ in AP@200 on MNIST at $k=4$). Second, that advantage
+is per active cell, not per operation: Gaussian projections given the same
+projection arithmetic retrieve better on every dataset and at every input
+dimension tested. Third, the connectomes behave like degree-preserving random
+matrices, retrieving slightly worse than their rewirings (median
+\AnimRelMedian{}; below the null on odours in all \AnimN{} hemispheres). The
+cost lies in the skewed fan-out of glomeruli: at equal connection count,
+evening out fan-out improves retrieval by up to \CtrlOutMax{}, while evening
+out inputs per cell does not. The random idealisation of 2017 is therefore
+justified, and slightly optimistic.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -50,88 +50,102 @@ connectomics, locality-sensitive hashing, similarity search, replication
 Locality-sensitive hashing (LSH) maps items to short codes under which similar
 items collide with high probability \cite{indyk1998,charikar2002}. Dasgupta
 \textit{et al.} \cite{dasgupta2017} noticed that the fly olfactory circuit
-computes a related transform with three unusual features: a sparse binary
-projection, an expansion rather than a reduction of dimension, and
-winner-take-all. On SIFT, GloVe and MNIST it beat classical LSH by up to about
-$3\times$. The projection was sampled at random, following the account that
-this wiring is effectively random \cite{caron2013}.
+computes a related transform (Fig.~\ref{fig:concept}a): about $50$ glomeruli
+project through a sparse binary matrix onto about $2{,}000$ Kenyon cells, and
+inhibition keeps the most active $5\%$. On SIFT, GloVe and MNIST this fly hash
+beat classical LSH by up to about $3\times$. The projection was random,
+following the account that the wiring is effectively random \cite{caron2013}.
 
 That account has since been revised: projection-neuron input to Kenyon cells is
-structured \cite{zheng2022}. Complete projections are now available from four
-electron-microscopy connectomes \cite{malecns2026,scheffer2020,dorkenwald2024,bates2026}.
-We ask whether the random matrix was a harmless idealisation for the task
-that motivated it, in two ways:
+structured \cite{zheng2022}, and four connectomes now give the complete
+projection \cite{malecns2026,scheffer2020,dorkenwald2024,bates2026}. We ask
+whether the random matrix was a harmless idealisation for the task that
+motivated it. To our knowledge no prior work has run the 2017 benchmark on a
+connectome; \cite{zheng2022} studied odour discrimination. Our contributions:
 
 \begin{itemize}
-\item \emph{Approach 1}: reimplement the 2017 protocol, check it against the
-published pattern, add odour mixtures as a fourth dataset, and substitute each
-connectome for the random matrix.
-\item \emph{Approach 2}: an odour analysis adapted to the circuit, with
-randomization tests, a bootstrap over odorant sets and an equivalence margin.
+\item a reimplementation of the 2017 protocol with documented provenance,
+extended with odour mixtures, that recovers the published pattern;
+\item a budget analysis showing that the fly hash's advantage is per active
+cell and not per operation;
+\item the first test of the fly hash on four connectomes, with controls that
+change one degree sequence at a time at equal connection count, showing that
+measured wiring performs like, and slightly worse than, random wiring, and
+locating the difference in glomerular fan-out.
 \end{itemize}
 
-Both compare the connectome with the same null, with controls that change one
-degree sequence at a time at equal connection count, and with LSH under three
-budgets. To our knowledge no prior work has run the 2017 benchmark on a
-connectome; \cite{zheng2022} studied odour discrimination, not retrieval.
+\begin{figure*}[t]
+\centerline{\includegraphics[width=\textwidth]{fig_concept.pdf}}
+\caption{(a) The fly hash: glomerular input $x$ is expanded through a binary
+projection $M$ onto Kenyon cells and the $k$ most active cells form the tag.
+(b) In the MaleCNS connectome glomeruli reach very different numbers of Kenyon
+cells; the dashed line is the even fan-out at the same number of connections.
+(c) Inputs per Kenyon cell, against the six of the 2017 construction.}
+\label{fig:concept}
+\end{figure*}
 
-\section{Common design}
+\section{Related work}
 
-\subsection{Connectomes}
+The fly hash has been extended with dense pseudo-hashes and multi-probe
+binning \cite{sharma2018}, and with projections learned by local plasticity
+rules \cite{ryali2020,liang2021}; these change the algorithm, whereas we keep
+it and change only the matrix. On the biological side, random convergence of
+projection-neuron input was reported from anatomical tracing
+\cite{caron2013}; electron microscopy later mapped the mushroom body
+completely in the larva \cite{eichler2017} and in the adult hemibrain
+\cite{li2020}, and found structured sampling in FAFB, where simulated odour
+discrimination was worse than with random wiring \cite{zheng2022}. None of
+these studies evaluated similarity search, the task behind the hashing
+interpretation, or compared connectomes across animals on it.
+
+\section{Methods}
+
+\subsection{Connectomes and matrices}
 
 Let $M\in\{0,1\}^{d\times m}$ with $M_{ji}=1$ iff glomerulus $j$ connects to
 Kenyon cell $i$. For every connectome the same rule applies: uniglomerular
 olfactory projection neurons are assigned to glomeruli by cell type
 (multiglomerular, thermo- and hygrosensory types excluded), Kenyon cells are
-those annotated as such on the same side, every reconstructed connection
-counts (no synapse threshold), and cells without olfactory input are dropped.
-Hemibrain glomerulus names are mapped to the current nomenclature using the
-cross-dataset matches of \cite{schlegel2024}. We use MaleCNS v1.0 (male, both
-hemispheres), hemibrain v1.2 (female, right only), FlyWire v783 and BANC v888
-(female, both). All hemispheres share $\AnimCommon$ glomeruli; they have
-\AnimCellsMin{} to \AnimCellsMax{} Kenyon cells with \AnimInMin{} to
-\AnimInMax{} glomerular inputs per cell on average. The datasets differ in
-imaging, synapse detection and proofreading, so part of any difference between
-them is technical. The primary connectome is the MaleCNS right hemisphere
-($d=\NGlomFull$, $m=\NCellsFull$; \PNPartnersFull{} distinct projection-neuron
-partners per cell).
+those annotated on the same side, every reconstructed connection counts (no
+synapse threshold), and cells without olfactory input are dropped. Hemibrain
+glomerulus names are mapped to current nomenclature via the cross-dataset
+matches of \cite{schlegel2024}. We use MaleCNS v1.0 (male, both hemispheres),
+hemibrain v1.2 (female, right), FlyWire v783 and BANC v888 (female, both). All
+share $\AnimCommon$ glomeruli; they have \AnimCellsMin{} to \AnimCellsMax{}
+Kenyon cells with \AnimInMin{} to \AnimInMax{} inputs per cell. The datasets
+differ in imaging, synapse detection and proofreading, so part of any
+difference between them is technical. The primary connectome is MaleCNS right
+($d=\NGlomFull$, $m=\NCellsFull$).
 
-\subsection{Hash, null and controls}
+Only $M$ changes between conditions. \emph{The null} is uniform over binary
+matrices with the same row and column sums as $M$, sampled by curveball trades
+\cite{strona2014,carstens2015} (30 per cell; co-occurrence
+$Q=\sum_{j<l}(MM^\top)_{jl}^2$ is stable from \PlateauSweeps{} sweep on); it
+keeps both degree sequences and randomises which glomeruli share a cell, and
+tests against it are approximate Monte Carlo randomization tests.
+\emph{Equal-connection controls} have exactly $\mathrm{nnz}(M)$ ones with
+inputs per cell made even, fan-out made even, or both, and random pairing.
+\emph{The 2017 construction} gives each cell six uniform inputs, changing both
+degree sequences and the connection count.
+
+\subsection{Hash, scores and budgets}
 
 The fly hash computes $y=M^\top x$ and sets the $k$ largest entries of $y$ to
-one. Only $M$ changes between conditions. \emph{The null} is uniform over binary
-matrices with the same row and column sums as $M$, sampled by curveball trades
-\cite{strona2014,carstens2015}; it randomises which glomeruli share a cell and
-keeps both degree sequences. We use $30$ trades per cell; co-occurrence
-$Q=\sum_{j<l}(MM^\top)_{jl}^2$ stays within three null SDs from
-\PlateauSweeps{} sweep on. Tests against it are approximate Monte Carlo
-randomization tests.
+one. Retrieval is scored by $\mathrm{AP@}n=\frac1n\sum_i
+\mathrm{prec@}i\cdot\mathrm{rel}(i)$ over the $n$ true neighbours, so neighbours
+never retrieved count as misses, together with recall@$n$. LSH computes $k$
+Gaussian projections kept as real values, as in the 2017 comparison, or their
+signs for bit codes. Budgets are per active cell ($k$ projections for $k$
+winners), per stored bit, and per operation, counted as projection arithmetic
+as in \cite{dasgupta2017}: $d$ multiplications and $d$ additions per
+projection, one addition per non-zero of $M$; winner selection, retrieval and
+any PCA fit are excluded.
 
-\emph{Equal-connection controls} have exactly $\mathrm{nnz}(M)$ ones and change
-one margin at a time: inputs per cell made as even as possible (fan-out kept),
-fan-out per glomerulus made even (inputs kept), or both; the pairing is then
-randomised by curveball. \emph{The 2017 construction} gives every cell six
-uniform inputs; it changes both margins and the connection count.
-
-\subsection{Scores, baselines and budgets}
-
-Retrieval is scored by average precision at $n$, the number of true neighbours:
-$\mathrm{AP@}n=\frac1n\sum_i \mathrm{prec@}i\cdot\mathrm{rel}(i)$, where true
-neighbours never retrieved count as misses; recall@$n$ is reported with it.
-LSH computes $k$ Gaussian projections kept as real values, as in the 2017
-comparison, or their signs for bit codes. Budgets are \emph{per active cell}
-($k$ projections for $k$ winners), \emph{per stored bit} and \emph{per
-operation}. Operations are the projection arithmetic of \cite{dasgupta2017}:
-$d$ multiplications and $d$ additions per Gaussian projection, one addition per
-non-zero of $M$; winner selection, retrieval and any PCA fit are excluded.
-
-\section{Approach 1: the 2017 protocol}
-
-\subsection{Reimplementation}
+\subsection{Approach 1: the 2017 protocol}
 
 \begin{table}[t]
-\caption{Provenance of the protocol: from the 2017 main text \cite{dasgupta2017},
-from the 2018 FlyLSH code \cite{sharma2018}, or chosen here.}
+\caption{Provenance of the protocol: 2017 main text \cite{dasgupta2017},
+2018 FlyLSH code \cite{sharma2018}, or our choice.}
 \label{tab:prov}
 \centering
 \scriptsize
@@ -153,308 +167,63 @@ trials & $50$; matrices and queries redrawn & 2017 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:prov} lists each protocol element and where it comes from. The
-2017 paper reports ``mean average precision'' without a formula. Precision
-averaged over \emph{retrieved} true neighbours only, a convention in parts of
-the hashing literature, reproduces its LSH baseline on MNIST at $k=4$
-(\ReplMnistLshRetr{} against $0.160$) but not its fly score
-(\ReplMnistFlyRetr{} against $0.448$). That score rewards retrieving a few easy
-neighbours (one hit at rank 1 scores 1), so we use AP@200 and recall@200 and
-compare with the paper only through orderings and ratios. The FlyLSH code
-computes neighbours on centred rather than raw input; scoring against those
-leaves the MNIST ratio at $\ReplMnistRatioCentred\times$ (supplement).
+Table~\ref{tab:prov} gives the protocol and the source of each element; we add
+$10{,}000$ mixtures of DoOR odour profiles as a fourth dataset. The 2017 paper
+reports ``mean average precision'' without a formula. Precision averaged over
+\emph{retrieved} true neighbours only, a convention in parts of the hashing
+literature, reproduces its LSH baseline (MNIST, $k=4$: \ReplMnistLshRetr{}
+against $0.160$) but not its fly score (\ReplMnistFlyRetr{} against $0.448$).
+That score ignores misses, so we report AP@200 and recall@200 and compare with
+the paper through orderings and ratios. With a connectome, $M$ accepts only its
+own glomeruli: odours use the glomeruli DoOR covers, and SIFT, GloVe and MNIST
+are reduced by PCA to $\ConnGlom$ components assigned to glomeruli by a fresh
+random permutation in each trial, so these datasets test the wiring's
+statistics, not its odour-specific pairing. Each connectome is scored against
+$\ConnB$ nulls and one draw of each control per trial.
 
-\subsection{Random matrices}
-
-\begin{table}[t]
-\caption{Random matrices, 2017 protocol: AP@200 (recall@200), mean of
-\ReplTrials{} trials.}
-\label{tab:repl}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\begin{tabular}{lcccccccc}
-\toprule
-data & $d$ & $k$ & LSH & rand.\ sel. & fly $20k$ & fly $10d$ & $10d$/LSH \\
-\midrule
-\ReplRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-The published pattern holds (Table~\ref{tab:repl}). Random tag selection
-performs like LSH, as the paper argues it must; winner-take-all at $m=20k$
-beats both; the $10d$ expansion does better still; the advantage is largest at
-short hash lengths ($\ReplMnistRatio\times$ on MNIST at $k=4$; recall
-$\ReplMnistRecallRatio\times$) and shrinks as $k$ grows. On odours the ratio is
-$\ReplOdourRatio\times$. GloVe scores are close to zero at small $k$ for every
-method.
-
-\begin{table}[t]
-\caption{Input dimension alone: MNIST reduced by PCA to $d$ components,
-$k=4$, 10 trials. Ops: $10d$ fly over $4$-projection LSH. Last three columns:
-LSH with the $10d$ fly's arithmetic, its projections and AP, and the fly's best
-AP over $k\le16$.}
-\label{tab:dim}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.6pt}
-\begin{tabular}{rccccccc}
-\toprule
-$d$ & ops & LSH & fly $10d$ & ratio & proj. & LSH eq.\ ops & fly best \\
-\midrule
-\DimRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-To separate input dimension from dataset identity, Table~\ref{tab:dim} reduces
-one dataset to $d$ dimensions. Per active cell, the fly hash trails LSH at
-$d=8$, ties at $16$ and leads from $32$ on. At equal projection arithmetic
-real-valued LSH leads at every $d$.
-
-\subsection{The connectome}
-
-\begin{figure*}[t]
-\centerline{\includegraphics[width=\textwidth]{benchmarks.png}}
-\caption{The 2017 protocol with the MaleCNS connectome (right hemisphere), AP@200.
-SIFT, GloVe and MNIST are reduced by PCA to $\ConnGlom$ components assigned to
-glomeruli at random in each trial; odours use the $\NGlom$ measured glomeruli.
-All methods see the same input. The null band is mostly too narrow to see.}
-\label{fig:bench}
-\end{figure*}
-
-$M$ accepts only its own glomeruli as input. SIFT, GloVe and MNIST are reduced
-by PCA to $\ConnGlom$ components; since image and word features have no
-glomerulus, each trial assigns components to glomeruli by a fresh random
-permutation, so these datasets test the wiring's statistics, not its
-odour-specific pairing. Odours use the $\NGlom$ glomeruli DoOR covers
-($m=\NCells$). Over \ConnTrials{} trials we score $M$, \ConnB{} nulls, one draw
-of each control per trial, and LSH.
-
-\begin{table}[t]
-\caption{MaleCNS connectome, 2017 protocol, AP@200: connectome, null mean
-($B=\ConnB$), relative difference, two-sided $p$ (floor $\ConnPFloor$), the
-six-input construction and LSH with $k$ projections.}
-\label{tab:conn}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.4pt}
-\begin{tabular}{lccccccc}
-\toprule
-data & $k$ & conn. & null & $\Delta$\% & $p$ & six & LSH \\
-\midrule
-\ConnRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\caption{Degree controls, MaleCNS, relative to the null mean (\%). Equal
-connections: inputs per cell even, fan-out even, both even; the six-input
-construction changes the connection count. Right: the same without
-row-centring (connectome, both even).}
-\label{tab:ctrl}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.2pt}
-\begin{tabular}{lcccccc|cc}
-\toprule
- & & & \multicolumn{3}{c}{equal connections} & & \multicolumn{2}{c}{no centring} \\
-data & $k$ & conn. & in & out & both & six & conn. & both \\
-\midrule
-\ControlRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-The connectome keeps the fly hash's advantage over LSH at short hash lengths:
-\ConnMnistReal{} against \ConnMnistLsh{} on MNIST at $k=4$
-($\ConnMnistRatio\times$), $\ConnOdourRatio\times$ on odours
-(Fig.~\ref{fig:bench}, Table~\ref{tab:conn}). LSH overtakes it from
-$k\approx16$. Against its null the connectome lies within \ConnImgMin{} to
-\ConnImgMax{} on SIFT, GloVe and MNIST; at the largest size it is below every
-null draw on each dataset, and on odours it is below the null at every size.
-
-The controls separate the two degree sequences (Table~\ref{tab:ctrl}). At
-equal connection count, making fan-out even raises AP on image and word input
-by \CtrlOutMin{} to \CtrlOutMax{}, increasingly with $k$. Making inputs per
-cell even does not help (\CtrlInMin{} to \CtrlInMax{}). The six-input
-construction behaves like the even-fan-out control. Removing row-centring,
-which alters winner order only when inputs per cell differ, leaves the image
-and word results unchanged but moves the odour results substantially: on
-non-negative input the connectome's drive then tracks how many inputs a cell
-has. What the circuit gives up relative to idealised wiring is thus
-mainly its uneven use of glomeruli, not its pairing.
-
-\section{Approach 2: odour analysis}
-\label{sec:odours}
-
-\subsection{Design}
+\subsection{Approach 2: odour analysis}
 
 Responses are the DoOR 2.0 consensus matrix \cite{munch2016} (commit
 \texttt{\DoorCommit}). Coverage is uneven: $35$ glomeruli are measured for $51$
-or more odorants, eleven for $12$ to $24$, and five for none. We keep the $35$
-(a threshold of $40$ odorants, in that gap; our choice) and odorants measured on
-at least $12$ of them: $\NOdorants$ odorants, \MissingPct{} of entries
-unmeasured and set to zero. The benchmark is $\NItems$ synthetic linear
-mixtures of two to five profiles, normalised to unit mean as in the circuit;
-ground truth is the $\kappa=10$ nearest items on raw responses; AP is computed
-over all $\kappa$ neighbours. The restricted connectome has mean $\Inputs$
-inputs and \PNPartners{} projection-neuron partners per cell.
+or more odorants, eleven for $12$ to $24$, five for none. We keep the $35$ (our
+threshold of $40$ odorants falls in that gap) and odorants measured on at least
+$12$ of them: $\NOdorants$ odorants, \MissingPct{} of entries unmeasured and set
+to zero. The benchmark is $\NItems$ linear mixtures of two to five profiles,
+normalised to unit mean as in the circuit, with the $\kappa=10$ nearest items
+on raw responses as ground truth. The primary size $k=\PrimaryK$ ($5\%$ of
+cells) and secondary sizes $\{8,16,32,64\}$ were fixed in an earlier revision,
+after first results had been seen; this is not a preregistration. MaleCNS is
+tested against \NullB{} nulls with a two-stage bootstrap (resampled odorants,
+regenerated mixtures, $20$ nulls drawn from the same pool per replicate,
+$\BootR$ replicates) and a $\pm\MarginPrimary$ equivalence margin; every
+hemisphere is tested against \AnimB{} nulls on its own and on the
+$\AnimCommonOdour$ shared DoOR glomeruli.
 
-The primary size $k=\PrimaryK$ ($5\%$ of cells) and the family of secondary
-sizes $\{8,16,32,64\}$ (Holm-adjusted) were fixed in an earlier revision of
-this analysis, after first results had been seen; this is not a
-preregistration. We compare $M$ with $B=\NullB$ nulls. A two-stage bootstrap
-resamples source odorants, regenerates the benchmark and draws $20$ nulls
-without replacement from the same pool of \NullB{} ($\BootR$ replicates); its
-coverage was checked for one fitted rank-6 generator at $600$ items.
-Equivalence is assessed at $\pm\MarginPrimary$.
+\section{Results}
 
-\subsection{Results}
+\subsection{The 2017 pattern holds}
 
 \begin{figure*}[t]
-\centerline{\includegraphics[width=0.82\textwidth]{flyhash.png}}
-\caption{Odour analysis, MaleCNS. \textbf{Left:} AP of the fly hash on the
-connectome and of Gaussian sign codes with $k$ bits, at matched storage and at
-matched operations (\ComputeBits{} bits); mean of 20 seeds. \textbf{Right:}
-each orange point is one of \NullB{} null matrices, blue diamonds the
-connectome, both relative to the null mean.}
-\label{fig:main}
+\centerline{\includegraphics[width=\textwidth]{fig_replication.pdf}}
+\caption{The 2017 protocol with random matrices: AP@200 against hash length,
+mean $\pm$ SD of \ReplTrials{} trials. Random tag selection performs like LSH;
+winner-take-all at $m=20k$ and $10d$ beats both at short hash lengths.}
+\label{fig:repl}
 \end{figure*}
 
-\begin{table}[t]
-\caption{Odour analysis, MaleCNS: connectome against the null ($B=\NullB$) and
-comparison matrices (relative to the null mean, \%). $^\ast$primary.}
-\label{tab:wiring}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.4pt}
-\begin{tabular}{rcccccccc}
-\toprule
-$k$ & conn. & null & $\Delta$\% & $p$ & $p_\text{Holm}$ & fan flat & 6 unif. & balanced \\
-\midrule
-\WiringRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-The pairing is structured: glomerulus co-occurrence $Q$ is \QRealRel{} above
-the null mean and exceeds all \NullB{} draws ($p=\QRealP$), as in
-\cite{zheng2022}. Retrieval at the primary size is $\PrimaryReal$ against
-$\PrimaryNullMean\pm\PrimaryNullSD$, a relative difference of \PrimaryRel{}
-(two-sided $p=\PrimaryPtwo$ unadjusted; $\PrimaryPHolmAll$ if all five sizes
-are treated as one family; Table~\ref{tab:wiring}, Fig.~\ref{fig:main}).
-Secondary sizes give \SecRelMin{} to \SecRelMax{}. The bootstrap $90\%$
-interval is \BootLo{} to \BootHi{}; equivalence at $\pm\MarginPrimary$
-\EquivPrimary, at $\pm2.5\%$ it \EquivTwoFive. The interval covered the true
-value in \CovNew{} of \CovDatasets{} simulated datasets at nominal $90\%$, for
-that one generator. The two-sided test has $80\%$ power against shifts of
-\MdeDown{} downward and \MdeUp{} upward.
+With random matrices the published ordering is recovered on SIFT, MNIST and
+odours (Fig.~\ref{fig:repl}): random tag selection performs like LSH, as
+\cite{dasgupta2017} argue it must, winner-take-all at $m=20k$ beats both, and
+$m=10d$ does better still. The advantage is largest at short hash lengths
+($\ReplMnistRatio\times$ on MNIST at $k=4$; recall $\ReplMnistRecallRatio\times$;
+$\ReplOdourRatio\times$ on odours) and shrinks with $k$; on odours and GloVe
+LSH overtakes the fly hash from $k\approx8$--$16$. Scoring against neighbours
+on centred input, as the FlyLSH code does, leaves the MNIST ratio at
+$\ReplMnistRatioCentred\times$. GloVe is close to chance at small $k$ for every
+method.
 
 \begin{table}[t]
-\caption{Odour analysis, MaleCNS, primary size, one-factor variations
-($B=\RobB$ nulls each): relative difference (\%) and two-sided $p$.}
-\label{tab:rob}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lcc}
-\toprule
-variation & $\Delta$\% & $p$ \\
-\midrule
-\RobRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-Across \RobN{} one-factor variations (Table~\ref{tab:rob}) the difference
-ranges from \RobRelMin{} to \RobRelMax{} and is negative in \RobNNeg. The
-deficit depends on the input: imputing unmeasured responses gives
-\ImputeRelMin{} to \ImputeRelMax{} ($p\ge\ImputePMin$), and all $46$
-glomeruli with data give no difference. It cannot be separated from the
-treatment of unmeasured responses and the choice of glomeruli.
-
-\section{Four connectomes}
-
-\begin{table*}[t]
-\caption{Seven hemispheres of four animals. Cells, mean inputs per cell,
-fan-out coefficient of variation, co-occurrence $Q$ as $z$ against
-$B=\AnimB$ nulls; odour analysis at the primary size on each connectome's DoOR
-glomeruli and on the $\AnimCommonOdour$ all share (relative difference, $p$,
-floor $\AnimOdourPFloor$); range over the 2017-protocol runs ($4$ datasets
-$\times$ $6$ sizes, $B=\AnimBBench$, \AnimTrials{} trials); even-degree
-control and six-input construction relative to the null (mean over those
-runs); fly over LSH on MNIST at $k=4$.}
-\label{tab:animals}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lcccccccccccc}
-\toprule
-hemisphere & sex & cells & inputs & fan CV & $Q$ $z$ & odours $\Delta$\% ($p$) & matched $\Delta$\% ($p$) & protocol $\Delta$\% & even & six & fly/LSH \\
-\midrule
-\AnimalRows
-\bottomrule
-\end{tabular}
-\end{table*}
-
-\begin{figure*}[t]
-\centerline{\includegraphics[width=0.9\textwidth]{connectomes.png}}
-\caption{Four connectomes. \textbf{Left:} glomerular inputs per Kenyon cell.
-\textbf{Right:} each hemisphere's relative difference to its own null, per
-dataset and hash size under the 2017 protocol (small markers) and at the
-primary size of the odour analysis (stars).}
-\label{fig:animals}
-\end{figure*}
-
-We repeat both approaches on every hemisphere with identical, reduced settings
-(Table~\ref{tab:animals}, Fig.~\ref{fig:animals}). Hemispheres of one animal
-are not independent, so we summarise by animal. The pairing is structured in
-\AnimQNSig{} of \AnimN{} hemispheres ($Q$ $z$ from \AnimQzMin{} to
-\AnimQzMax{}). Under the 2017 protocol the connectome's difference to its
-null has median \AnimRelMedian{} (interquartile range \AnimRelIQR) across all
-$\AnimNProto$ hemisphere--dataset--size combinations; it is negative in
-\AnimNNeg{}, below every null draw in \AnimNFloor{} and above every draw in
-\AnimNFloorUp{}; the extremes (\AnimRelMin{}, \AnimRelMax{}) occur at the
-smallest sizes, where AP is small. The mean difference is negative in
-\AnimalsProtoNeg{} of \AnimAnimals{} animals.
-The hemibrain is the exception to structure: by $Q$ its pairing is
-indistinguishable from the null, while FlyWire's is the most structured, so
-the strength of the measured structure varies between reconstructions; seven
-hemispheres are too few to tell whether retrieval relative to the null tracks
-it. On
-odours the primary-size difference is negative in all \AnimN{} hemispheres
-and all \AnimAnimals{} animals, from \AnimOdourMin{} to \AnimOdourMax{}
-(\AnimOdourNSig{} of \AnimN{} at $p<0.05$), and from
-\AnimMatchedMin{} to \AnimMatchedMax{} on the shared glomeruli. The
-even-degree control scores \AnimBothMin{} to \AnimBothMax{} relative to the
-null on average, and the fly hash leads LSH on MNIST at $k=4$ by
-\AnimLshMin{}--\AnimLshMax$\times$ in every hemisphere. One male cannot separate
-sex from individual or reconstruction differences.
-
-\section{Budgets}
-
-\begin{table}[t]
-\caption{Projection arithmetic. Ops: the $10d$ fly ($10d$ cells, $s$ inputs
-each) over $k=4$ LSH ($2kd$). LSH with the $10d$ fly's arithmetic (real-valued
-projections) against that fly's best AP ($k\le32$).}
-\label{tab:budget}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lccccc}
-\toprule
-data & $d$ & ops & LSH proj. & LSH AP & fly $10d$ AP \\
-\midrule
-\BudgetRows
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\caption{Odour analysis, MaleCNS: AP of the fly hash and of Gaussian sign codes
+\caption{Odours, MaleCNS: AP of the fly hash and of one-bit Gaussian codes
 (bits in parentheses).}
 \label{tab:arch}
 \centering
@@ -469,68 +238,201 @@ $k$ & fly & sign, $k$ bits & storage-matched & operation-matched \\
 \end{tabular}
 \end{table}
 
+\subsection{The advantage is per active cell, not per operation}
+
+\begin{figure*}[t]
+\centerline{\includegraphics[width=\textwidth]{fig_budget.pdf}}
+\caption{(a) MNIST reduced by PCA to $d$ dimensions, $k=4$: the fly hash's
+lead over LSH per active cell grows with $d$, but LSH given the same projection
+arithmetic as the $m=10d$ fly leads at every $d$. (b) Best AP of the fly hash,
+with a random matrix ($m=10d$) and with the MaleCNS connectome, against
+real-valued LSH given the same projection arithmetic.}
+\label{fig:budget}
+\end{figure*}
+
 The 2017 comparison sets $k$ active cells against $k$ projections, which
 equates projection arithmetic only at $m=20k$. The headline network has
 $m=10d$ cells sampling about $d/10$ inputs each: roughly $d^2$ additions
-against $2kd$, a factor near $d/2k$ ($98\times$ on MNIST at $k=4$;
-Table~\ref{tab:budget}). Real-valued LSH with that arithmetic reaches
-\ReplOpsMin{}--\ReplOpsMax{} AP across the four datasets, above the fly's best
-score on each, and above it at every $d$ of the sweep (Table~\ref{tab:dim}).
-The connectome costs $\mathrm{nnz}(M)$ additions, the arithmetic of
-$\ConnOpsBits$ projections; real-valued LSH with that budget beats the
-connectome's fly hash on \ConnOpsWins{} of \ConnNData{} datasets
-(Fig.~\ref{fig:bench}).
+against $2kd$ for LSH, a factor near $d/2k$ ($98\times$ on MNIST at $k=4$). A
+sweep over input dimension on one dataset (Fig.~\ref{fig:budget}a) shows both
+sides: per active cell, the fly hash trails LSH at $d=8$, ties at $16$ and leads
+from $32$ on; given equal arithmetic, real-valued LSH leads at every $d$. The
+same holds on all four datasets (Fig.~\ref{fig:budget}b), for random matrices
+(LSH \ReplOpsMin{}--\ReplOpsMax{} AP) and for the connectome, whose
+$\mathrm{nnz}(M)$ additions buy $\ConnOpsBits$ projections that beat it on
+\ConnOpsWins{} of \ConnNData{} datasets.
 
-With one-bit codes the comparison is closer (Table~\ref{tab:arch}): on odours
-the fly hash beats sign codes of $k$ bits ($\ArchKbitsRatio\times$ at the
-primary size), trails at matched storage ($\ArchStorageRatio\times$), and at
-matched operations trails for small $k$ and leads from $k=32$
-($\ArchComputeRatio\times$). Real-valued and one-bit baselines differ in
-representation and storage, so the two comparisons answer different questions.
-The fly hash's advantage is per active cell; per operation it holds only
-against one-bit codes in some settings.
+
+One-bit codes are weaker than real-valued projections, and against them the
+comparison is closer (Table~\ref{tab:arch}): on odours the fly hash beats sign
+codes of $k$ bits ($\ArchKbitsRatio\times$ at the primary size), trails at
+matched storage ($\ArchStorageRatio\times$), and at matched operations trails
+for small $k$ and leads from $k=32$ ($\ArchComputeRatio\times$).
+
+\subsection{Connectomes behave like degree-preserving random matrices}
+
+\begin{figure*}[t]
+\centerline{\includegraphics[width=\textwidth]{fig_connectomes.pdf}}
+\caption{Connectome against its own null (AP relative to the null mean). (a)
+Odour analysis, MaleCNS right: orange, \NullB{} null matrices; blue, the
+connectome. (b) The 2017 protocol in seven hemispheres: four datasets $\times$
+six hash lengths each, bar at the median. (c) Odour analysis at the primary
+size in every hemisphere, on its own DoOR glomeruli and on the
+$\AnimCommonOdour$ all share.}
+\label{fig:conn}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Seven hemispheres of four animals: Kenyon cells, mean inputs per
+cell, fan-out coefficient of variation, co-occurrence $Q$ as $z$ against
+$\AnimB$ nulls; odour analysis at the primary size on own and on shared
+glomeruli (relative difference \%, $p$, floor $\AnimOdourPFloor$); range over
+the 2017-protocol runs ($4$ datasets $\times$ $6$ sizes, $B=\AnimBBench$,
+\AnimTrials{} trials); even-degree control and six-input construction relative
+to the null (mean over those runs); fly hash over LSH on MNIST at $k=4$.}
+\label{tab:animals}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccccccccc}
+\toprule
+hemisphere & sex & cells & inputs & fan CV & $Q$ $z$ & odours $\Delta$\% ($p$) & shared $\Delta$\% ($p$) & protocol $\Delta$\% & even & six & fly/LSH \\
+\midrule
+\AnimalRows
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Substituting a connectome for the random matrix keeps the fly hash's advantage:
+it leads LSH on MNIST at $k=4$ by \AnimLshMin{}--\AnimLshMax$\times$ in every
+hemisphere (Table~\ref{tab:animals}). Against its own null it is close but
+slightly worse (Fig.~\ref{fig:conn}b): across $\AnimNProto$ hemisphere,
+dataset and size combinations the median difference is \AnimRelMedian{}
+(interquartile range \AnimRelIQR), negative in \AnimNNeg{}, below every null
+draw in \AnimNFloor{} and above every draw in \AnimNFloorUp{}, with a negative
+mean in \AnimalsProtoNeg{} of \AnimAnimals{} animals. Seven hemispheres come
+from four animals and are not independent; one male cannot separate sex from
+individual or reconstruction differences.
+
+On odours (Fig.~\ref{fig:conn}c) the difference at the primary size is
+negative in all \AnimN{} hemispheres, \AnimOdourMin{} to \AnimOdourMax{}
+(\AnimOdourNSig{} at $p<0.05$), and \AnimMatchedMin{} to \AnimMatchedMax{} on
+the shared glomeruli. In the full MaleCNS analysis (Fig.~\ref{fig:conn}a,
+Table~\ref{tab:wiring}) the connectome scores $\PrimaryReal$ against
+$\PrimaryNullMean\pm\PrimaryNullSD$, \PrimaryRel{} (two-sided
+$p=\PrimaryPtwo$; $\PrimaryPHolmAll$ with all five sizes as one family); the
+bootstrap $90\%$ interval is \BootLo{} to \BootHi{}, equivalence at
+$\pm\MarginPrimary$ \EquivPrimary{} and at $\pm2.5\%$ it \EquivTwoFive{}, the
+interval covered the true value in \CovNew{} of \CovDatasets{} datasets
+simulated from one fitted generator, and the two-sided test has $80\%$ power at
+\MdeDown{} downward and \MdeUp{} upward. The deficit depends on the input
+(Table~\ref{tab:rob}): imputing unmeasured responses gives \ImputeRelMin{} to
+\ImputeRelMax{} ($p\ge\ImputePMin$), and all $46$ glomeruli with data give no
+difference.
+
+\begin{table}[t]
+\caption{Odours, MaleCNS: connectome against the null ($B=\NullB$) and
+comparison matrices (relative to the null mean, \%). $^\ast$primary.}
+\label{tab:wiring}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\begin{tabular}{rcccccccc}
+\toprule
+$k$ & conn. & null & $\Delta$\% & $p$ & $p_\text{Holm}$ & fan flat & 6 unif. & balanced \\
+\midrule
+\WiringRows
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Odours, MaleCNS, primary size, one-factor variations ($B=\RobB$
+nulls each): relative difference (\%) and two-sided $p$.}
+\label{tab:rob}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcc}
+\toprule
+variation & $\Delta$\% & $p$ \\
+\midrule
+\RobRows
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pairing itself is structured in \AnimQNSig{} of \AnimN{} hemispheres
+($Q$ $z$ from \AnimQzMin{} to \AnimQzMax{}), consistent with
+\cite{zheng2022}; the hemibrain is the exception, indistinguishable from its
+null by $Q$. Structure in the pairing does not translate into better
+retrieval.
+
+\subsection{The cost lies in glomerular fan-out}
+
+\begin{figure*}[t]
+\centerline{\includegraphics[width=\textwidth]{fig_controls.pdf}}
+\caption{Degree controls, AP relative to the null mean. (a) MaleCNS right at
+the largest hash size: the connectome, and matrices with the same number of
+connections but inputs per cell even, fan-out even, or both; the 2017
+construction changes the connection count. (b) The even-degree control and
+the six-input construction in every hemisphere, mean over the 2017-protocol
+runs.}
+\label{fig:ctrl}
+\end{figure*}
+
+Why is random wiring slightly better? The controls change one degree sequence
+at a time at equal connection count (Fig.~\ref{fig:ctrl}a). Making fan-out even,
+so that every glomerulus reaches the same number of Kenyon cells, raises AP on
+image and word input by \CtrlOutMin{} to \CtrlOutMax{}, increasingly with $k$;
+making inputs per cell even does not (\CtrlInMin{} to \CtrlInMax{}). The 2017
+construction behaves like the even-fan-out control. In every hemisphere the
+even-degree control beats the null, by \AnimBothMin{} to \AnimBothMax{} on
+average (Fig.~\ref{fig:ctrl}b). The measured fan-out is strongly skewed
+(Fig.~\ref{fig:concept}b; up to $\FanMax$ cells for \FanMaxGlom{} against a mean
+near $195$), so a few glomeruli take part in many cells' drive. On odours the
+same holds with smaller effects: even fan-out improves AP at every hash size
+($+2\%$ to $+4\%$), while even inputs per cell helps only at the smallest
+sizes. Row-centring, part of the 2017 protocol, alters winner order only when
+inputs per cell differ; removing it leaves image and word results unchanged but
+changes the odour results strongly at small $k$, where drive on non-negative
+input then tracks the number of inputs (supplement).
 
 \section{Discussion}
 
-Across four animals the connectome behaves like a degree-preserving random
-matrix for similarity search: it keeps the fly hash's advantage per active cell
-and retrieves within a few percent of its rewirings, slightly worse where it
-differs, in the direction reported for odour discrimination in
-\cite{zheng2022}. Its pairing is structured but does not help this task. What
-does matter at equal connection count is how evenly glomeruli are used: the
-connectome's fan-out is skewed, and evening it out improves retrieval, whereas
-evening out inputs per cell does not. On image and word input the random
-matrix of 2017 is in that sense not only a harmless idealisation but a
-somewhat better hash than the circuit; on odours the difference is small. That the skew serves other ends, such as innate valence
-\cite{zheng2022} or novelty detection \cite{dasgupta2018}, is not tested
-here.
+The random matrix of 2017 was a justified idealisation for similarity search.
+Put in its place, four measured connectomes keep the fly hash's per-cell
+advantage and retrieve within a few percent of degree-preserving random
+matrices, slightly worse, in the direction reported for odour discrimination
+by \cite{zheng2022}. Their pairing is mostly structured but does not help this
+task; their fan-out is skewed and costs retrieval. That skew may serve other
+ends, such as innate valence \cite{zheng2022} or novelty detection
+\cite{dasgupta2018}, which we do not test.
 
-Three cautions apply. The odour deficit depends on treating unmeasured DoOR
-entries as zero and on the glomeruli included. Image and word input is
-compressed to $\ConnGlom$ dimensions and assigned to glomeruli arbitrarily.
-Differences between connectomes mix biology and reconstruction method.
-
-The benchmark claim itself needs a qualifier. Its advantage is per active
-cell. Counted as projection arithmetic, the headline network is far more
-expensive than the LSH it is compared with, and real-valued projections given
-equal arithmetic retrieve better on every dataset and dimension we tested.
+The algorithmic claim needs a qualifier. The fly hash's advantage is per active
+cell: real-valued Gaussian projections given the same projection arithmetic
+retrieve better on every dataset and input dimension we tested. Against one-bit
+codes, and at the circuit's own scale, the comparison is closer. The finding on
+fan-out suggests an improvement, a fly hash with even glomerular fan-out at
+equal cost, which we leave to future work.
 
 \section{Limitations}
 
-Four animals, one male. Our reimplementation departs from the published
-absolute values; two protocol details come from later code, and the published
-score is undefined. The 2017-protocol runs across connectomes use $50$ nulls
-and are effect estimates; inference rests on the odour tests. The odour
-benchmark is generated from partially observed profiles with linear mixing.
-The model is binary and rate-free and ignores inhibition beyond winner-take-all.
+Four animals, one male; differences between connectomes mix biology and
+reconstruction. Our reimplementation recovers the published pattern but not
+its absolute values, and two protocol details come from later code. Image and
+word input is compressed to $\ConnGlom$ dimensions and assigned to glomeruli
+arbitrarily. The cross-connectome protocol runs use $\AnimBBench$ nulls and are
+effect estimates. The odour deficit depends on treating unmeasured DoOR entries
+as zero. The model is binary and rate-free and ignores inhibition beyond
+winner-take-all.
 
 \section{Conclusion}
 
 The 2017 fly hashing result holds in a reimplementation and survives the
-substitution of four connectomes, which perform like degree-preserving
-random matrices, slightly worse at larger hash sizes. The circuit's
-uneven use of glomeruli costs retrieval; its pairing neither helps nor hurts
-much. The algorithm's advantage over LSH is per active cell, not per
+substitution of four connectomes, which behave like degree-preserving random
+matrices and retrieve slightly worse because their glomerular fan-out is
+skewed. The algorithm's advantage over LSH is per active cell, not per
 operation. Code, data checksums, results and a supplement are at
 \url{https://github.com/ssenge/FlyHash-Connectome}.
 
@@ -594,6 +496,22 @@ pp. 139--152, 2024.
 \bibitem{bates2026} A. S. Bates \textit{et al.}, ``Distributed control circuits
 across a brain-and-cord connectome,'' \emph{Nature}, 2026,
 doi:10.1038/s41586-026-10735-w.
+
+\bibitem{ryali2020} C. K. Ryali, J. J. Hopfield, L. Grinberg, and D. Krotov,
+``Bio-inspired hashing for unsupervised similarity search,'' in \emph{Proc.
+ICML}, 2020, pp. 8295--8306.
+
+\bibitem{liang2021} Y. Liang, C. K. Ryali, B. Hoover, L. Grinberg, S. Navlakha,
+M. J. Zaki, and D. Krotov, ``Can a fruit fly learn word embeddings?'' in
+\emph{Proc. ICLR}, 2021.
+
+\bibitem{eichler2017} K. Eichler \textit{et al.}, ``The complete connectome of
+a learning and memory centre in an insect brain,'' \emph{Nature}, vol. 548,
+pp. 175--182, 2017.
+
+\bibitem{li2020} F. Li \textit{et al.}, ``The connectome of the adult
+\emph{Drosophila} mushroom body provides insights into function,''
+\emph{eLife}, vol. 9, e62576, 2020.
 
 \bibitem{sharma2018} J. Sharma and S. Navlakha, ``Improving similarity search
 with high-dimensional locality-sensitive hashing,'' arXiv:1812.01844, 2018.

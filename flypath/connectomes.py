@@ -261,4 +261,23 @@ def compare(cfg: Config, B: int = 100, B_bench: int = 50, trials: int = 5,
             f"{100 * pm_['relative_difference']:+.2f}% (p {pm_['p_two_sided']:.3f}); "
             f"{time.time() - t0:.0f}s")
         ex.save(out, "connectomes.json")
-    return out
+    add_degrees(cfg)
+    return json.loads(path.read_text())
+
+
+def add_degrees(cfg: Config) -> None:
+    """Store every hemisphere's per-glomerulus fan-out and per-cell input
+    counts in results/connectomes.json (read by the figures; no analysis is
+    rerun)."""
+    import json
+    from . import experiments as ex
+    path = ex.ROOT / "results" / "connectomes.json"
+    out = json.loads(path.read_text())
+    for ds, side in HEMISPHERES:
+        h = out["hemispheres"].get(f"{ds}_{side}")
+        if h is None:
+            continue
+        p = projection(cfg, ds, side)
+        h["fan_out"] = dict(zip(p.glomeruli, p.fan_out().tolist()))
+        h["inputs"] = np.bincount(p.inputs()).tolist()
+    ex.save(out, "connectomes.json")

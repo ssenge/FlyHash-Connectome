@@ -1,7 +1,7 @@
 """Regenerate every reported number from results/*.json.
 
 Writes
-  results/flyhash.png        the figure
+  results/fig_*.pdf, .png    the figures (flypath.figures)
   paper/generated.tex        LaTeX macros and table bodies used by the paper
   results/SUPPLEMENT.md      full robustness grid, power, coverage, mixing
   README.md                  the block between the results markers
@@ -44,75 +44,6 @@ def _holm_all(pr: dict) -> float:
 
 def _primary_row(pr: dict) -> dict:
     return next(r for r in pr["rows"] if r["primary"])
-
-
-# ------------------------------------------------------------------ figure
-
-_BLUE, _ORANGE, _VIOLET = "#2a78d6", "#eb6834", "#4a3aa7"   # validated CVD-safe
-_INK, _MUTED, _SURFACE = "#0b0b0b", "#52514e", "#ffffff"
-
-
-def figure(pr: dict, ar: dict, path: Path) -> None:
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    plt.rcParams.update({
-        "figure.dpi": 220, "font.size": 9, "axes.labelsize": 9,
-        "axes.spines.top": False, "axes.spines.right": False,
-        "axes.edgecolor": "#b8b7b1", "axes.labelcolor": _MUTED,
-        "xtick.color": _MUTED, "ytick.color": _MUTED,
-        "figure.facecolor": _SURFACE, "axes.facecolor": _SURFACE})
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.0, 3.1))
-
-    m = ar["metrics"]["euclidean"]
-    ks = m["sizes"]
-    g = m["gaussian"]
-    lines = [("fly hash (connectome)", m["fly"], _BLUE, "-", "o"),
-             ("Gaussian, k bits", g["k_bits"]["mean"], _VIOLET, "-", "s"),
-             ("Gaussian, storage-matched", g["storage_matched"]["mean"], _VIOLET, "--", "^"),
-             ("Gaussian, operation-matched", g["computation_matched"]["mean"], _VIOLET, ":", "v")]
-    for label, y, c, ls, mk in lines:
-        a1.plot(ks, y, ls, color=c, lw=1.8, marker=mk, ms=4.5,
-                markeredgecolor=_SURFACE, markeredgewidth=0.8, label=label)
-    leg = a1.legend(loc="lower right", frameon=False, fontsize=7, handlelength=2.2)
-    for t in leg.get_texts():
-        t.set_color(_MUTED)
-    a1.set_xscale("log", base=2)
-    a1.set_xticks(ks)
-    a1.set_xticklabels(ks)
-    a1.set_xlabel("active Kenyon cells k")
-    a1.set_ylabel("mean average precision")
-    a1.set_title("Fly hash versus Gaussian sign codes", color=_INK, fontsize=9.5, loc="left")
-    a1.grid(axis="y", color="#ecebe6", lw=0.7)
-    a1.set_axisbelow(True)
-
-    null = np.array(pr["null_scores"])
-    real = np.array(pr["real_scores"])
-    rng = np.random.default_rng(0)
-    for i, k in enumerate(pr["sizes"]):
-        rel = 100 * (null[:, i] / null[:, i].mean() - 1)
-        xs = i + rng.uniform(-0.28, 0.28, len(rel))
-        a2.scatter(xs, rel, s=5, color=_ORANGE, alpha=0.35, linewidths=0)
-        r = 100 * (real[i] / null[:, i].mean() - 1)
-        a2.scatter([i], [r], s=46, color=_BLUE, marker="D", edgecolors=_SURFACE,
-                   linewidths=0.9, zorder=3)
-        row = pr["rows"][i]
-        a2.annotate(f"p={row['randomization']['p_two_sided']:.2f}", (i, r),
-                    xytext=(0, -13), textcoords="offset points", ha="center",
-                    fontsize=6.5, color=_BLUE)
-    a2.axhline(0, color="#9a9992", lw=0.9)
-    a2.set_xticks(range(len(pr["sizes"])))
-    a2.set_xticklabels([f"{k}{'*' if k == pr['primary_k'] else ''}" for k in pr["sizes"]])
-    a2.set_xlabel("active Kenyon cells k   (* primary)")
-    a2.set_ylabel("mAP relative to null mean (%)")
-    a2.set_title(f"Connectome among {pr['B']} curveball nulls",
-                 color=_INK, fontsize=9.5, loc="left")
-    a2.grid(axis="y", color="#ecebe6", lw=0.7)
-    a2.set_axisbelow(True)
-    fig.tight_layout()
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
 
 
 # ------------------------------------------------------------------ LaTeX
@@ -431,53 +362,6 @@ def _control_macros(cb: dict) -> list[str]:
             _mac("CtrlSixMin", f"{pct(min(six), 1)}\\%"), _mac("CtrlSixMax", f"{pct(max(six), 1)}\\%")]
 
 
-def benchmark_figure(cb: dict, path: Path) -> None:
-    """One panel per dataset, all methods on the same input: connectome,
-    null mean with a 2 SD band, the 2017 construction, LSH with k projections,
-    and LSH with the operation count of the measured projection."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    names = [n for n in ("sift", "glove", "mnist", "odours") if n in cb["datasets"]]
-    fig, axes = plt.subplots(1, len(names), figsize=(9.0, 2.6), sharey=True)
-    axes = np.atleast_1d(axes)
-    for ax, name in zip(axes, names):
-        per = cb["datasets"][name]
-        rows = per["ap"]["rows"]
-        ks = [r["k"] for r in rows]
-        nm = np.array([r["null_mean"] for r in rows])
-        nsd = np.array([r["null_sd"] for r in rows])
-        ax.fill_between(ks, nm - 2 * nsd, nm + 2 * nsd, color=_ORANGE, alpha=0.25, lw=0)
-        ax.plot(ks, nm, color=_ORANGE, lw=1.2, label="null mean $\\pm$2 SD")
-        ax.plot(ks, [r["real"] for r in rows], "-o", color=_BLUE, lw=1.8, ms=3.5,
-                markeredgecolor=_SURFACE, markeredgewidth=0.6, label="connectome")
-        ax.plot(ks, [r["random_2017"] for r in rows], "--", color=_BLUE, lw=1.2,
-                label="2017 construction (6 inputs)")
-        ax.plot(ks, [r["both_equal"] for r in rows], ":", color=_BLUE, lw=1.4,
-                label="even degrees, same connections")
-        ax.plot(ks, [r["lsh"] for r in rows], "-s", color=_VIOLET, lw=1.5, ms=3.2,
-                markeredgecolor=_SURFACE, markeredgewidth=0.6, label="LSH, k projections")
-        ax.axhline(per["ap"]["lsh_ops"], color=_VIOLET, ls=":", lw=1.4,
-                   label="LSH, equal operations")
-        ax.set_xscale("log", base=2)
-        ax.set_xticks(ks)
-        ax.set_xticklabels(ks, fontsize=7)
-        ax.set_title(f"{_NAMES[name]} (d = {per['n_glomeruli']})", color=_INK, fontsize=9, loc="left")
-        ax.set_xlabel("active Kenyon cells k", fontsize=8)
-        ax.grid(axis="y", color="#ecebe6", lw=0.7)
-        ax.set_axisbelow(True)
-    axes[0].set_ylabel("mean average precision")
-    h, lab = axes[0].get_legend_handles_labels()
-    leg = fig.legend(h, lab, loc="lower center", ncol=6, frameon=False, fontsize=6.5,
-                     bbox_to_anchor=(0.5, -0.06))
-    for t in leg.get_texts():
-        t.set_color(_MUTED)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
-
-
 def _benchmark_supplement(rp, cb) -> list[str]:
     L = []
     if rp:
@@ -609,55 +493,6 @@ def animal_macros(an: dict) -> list[str]:
             _mac("AnimCellsMax", f"{max(h['full']['n_cells'] for h in hs.values()):,}".replace(",", "{,}")),
             _mac("AnimInMin", f"{min(h['full']['inputs_mean'] for h in hs.values()):.2f}"),
             _mac("AnimInMax", f"{max(h['full']['inputs_mean'] for h in hs.values()):.2f}")]
-
-
-def animal_figure(an: dict, path: Path) -> None:
-    """Left: inputs per Kenyon cell in every hemisphere. Right: every
-    hemisphere's relative difference to its null, per dataset and hash size
-    under the 2017 protocol, and at the primary size of the odour analysis."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    hs = list(an["hemispheres"].values())
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.0, 2.9), gridspec_kw={"width_ratios": [1, 1.7]})
-    shades = {"malecns": _BLUE, "hemibrain": _ORANGE, "flywire": _VIOLET, "banc": "#1b9e77"}
-    for h in hs:
-        hist = np.array(h["full"]["inputs_hist"], float)
-        a1.plot(np.arange(len(hist)), hist / hist.sum(), color=shades[h["dataset"]], lw=1.3,
-                ls="-" if h["side"] == "R" else "--", label=h["label"])
-    a1.set_xlim(0, 14)
-    a1.set_xlabel("glomerular inputs per Kenyon cell")
-    a1.set_ylabel("fraction of cells")
-    a1.set_title("Degree sequences", color=_INK, fontsize=9.5, loc="left")
-    leg = a1.legend(frameon=False, fontsize=6.5, ncol=1)
-    for t in leg.get_texts():
-        t.set_color(_MUTED)
-    marks = {"sift": "o", "glove": "s", "mnist": "^", "odours": "D"}
-    rng = np.random.default_rng(0)
-    for i, h in enumerate(hs):
-        for name, per in h["protocol"].items():
-            v = [100 * r["relative_difference"] for r in per["ap"]["rows"]]
-            a2.scatter(i + rng.uniform(-0.25, 0.25, len(v)), v, s=9, marker=marks[name],
-                       color=shades[h["dataset"]], alpha=0.55, linewidths=0,
-                       label=name if i == 0 else None)
-        prim = next(r for r in h["odours"] if r["primary"])
-        a2.scatter([i], [100 * prim["relative_difference"]], s=60, marker="*", color=_INK,
-                   zorder=3, label="odour analysis, primary k" if i == 0 else None)
-    a2.axhline(0, color="#9a9992", lw=0.9)
-    a2.set_xticks(range(len(hs)))
-    a2.set_xticklabels([h["label"] for h in hs], fontsize=7, rotation=20)
-    a2.set_ylabel("mAP relative to null mean (%)")
-    a2.set_title("Connectome against its own null", color=_INK, fontsize=9.5, loc="left")
-    a2.grid(axis="y", color="#ecebe6", lw=0.7)
-    a2.set_axisbelow(True)
-    leg = a2.legend(frameon=False, fontsize=6.5, ncol=5, loc="lower center",
-                    bbox_to_anchor=(0.5, -0.42))
-    for t in leg.get_texts():
-        t.set_color(_MUTED)
-    fig.tight_layout()
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
 
 
 def animal_supplement(an: dict) -> list[str]:
@@ -898,13 +733,8 @@ def build_all() -> None:
     cv, rb, co = _load("convergence.json"), _load("robustness.json"), _load("coverage.json")
     if not pr:
         raise SystemExit("results/primary.json missing; run: python -m flypath analyse")
-    figure(pr, ar, RES / "flyhash.png")
-    cb = _load("connectome_benchmarks.json")
-    if cb:
-        benchmark_figure(cb, RES / "benchmarks.png")
-    an = _load("connectomes.json")
-    if an and an.get("hemispheres"):
-        animal_figure(an, RES / "connectomes.png")
+    from . import figures
+    figures.build()
     (ROOT / "paper" / "generated.tex").write_text(latex(pr, ar, cv, rb, co))
     (RES / "SUPPLEMENT.md").write_text(supplement(pr, ar, cv, rb, co))
     readme = ROOT / "README.md"
@@ -914,4 +744,4 @@ def build_all() -> None:
         a = text.index(start)
         b = text.index(end) + len(end)
         readme.write_text(text[:a] + readme_block(pr, ar, rb, co) + text[b:])
-    print("wrote results/flyhash.png, paper/generated.tex, results/SUPPLEMENT.md, README block")
+    print("wrote results/fig_*.pdf|png, paper/generated.tex, results/SUPPLEMENT.md, README block")
