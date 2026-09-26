@@ -60,18 +60,18 @@ That account has since been revised: projection-neuron input to Kenyon cells is
 structured \cite{zheng2022}, and four connectomes now give the complete
 projection \cite{malecns2026,scheffer2020,dorkenwald2024,bates2026}. We ask
 whether the random matrix was a harmless idealisation for the task that
-motivated it. To our knowledge no prior work has run the 2017 benchmark on a
-connectome; \cite{zheng2022} studied odour discrimination. Our contributions:
+motivated it; \cite{zheng2022} studied odour discrimination, not retrieval.
+Our contributions:
 
 \begin{itemize}
 \item a reimplementation of the 2017 protocol with documented provenance,
 extended with odour mixtures, that recovers the published pattern;
 \item a budget analysis showing that the fly hash's advantage is per active
 cell and not per operation;
-\item the first test of the fly hash on four connectomes, with controls that
-change one degree sequence at a time at equal connection count, showing that
-measured wiring performs like, and slightly worse than, random wiring, and
-locating the difference in glomerular fan-out.
+\item a comparison of the fly hash across four connectomes and seven
+hemispheres, on the 2017 benchmarks and on measured odour responses, against
+degree-preserving rewiring and against controls that change one degree
+sequence at a time at equal connection count.
 \end{itemize}
 
 \begin{figure*}[t]
@@ -96,7 +96,8 @@ completely in the larva \cite{eichler2017} and in the adult hemibrain
 \cite{li2020}, and found structured sampling in FAFB, where simulated odour
 discrimination was worse than with random wiring \cite{zheng2022}. None of
 these studies evaluated similarity search, the task behind the hashing
-interpretation, or compared connectomes across animals on it.
+interpretation.
+
 
 \section{Methods}
 
