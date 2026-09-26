@@ -37,7 +37,11 @@ no consistent retrieval advantage over degree-preserving rewiring: retrieval
 is slightly lower (median \AnimRelMedian{}), and the small odour deficits
 depend on how missing odour responses are treated. Separately, equalising
 glomerular fan-out at fixed connection count improves retrieval in the model in
-every hemisphere, while equalising inputs per cell lowers it on average.
+every hemisphere, while equalising inputs per cell lowers it on average. Yet
+the skew is a conserved trait: each glomerulus's fan-out is strongly correlated
+across animals (median $\rho=\FanBetweenMed$), synaptic weights reinforce rather
+than offset it, and it favours broadly tuned glomeruli. The fly thus allocates
+Kenyon cells in a stereotyped way that a retrieval-optimal hash would not.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -49,9 +53,7 @@ connectomics, locality-sensitive hashing, similarity search, replication
 Locality-sensitive hashing (LSH) maps items to short codes under which similar
 items collide with high probability \cite{indyk1998,charikar2002}. Dasgupta
 \textit{et al.} \cite{dasgupta2017} noticed that the fly olfactory circuit
-computes a related transform (Fig.~\ref{fig:concept}a): about $50$ glomeruli
-project through a sparse binary matrix onto about $2{,}000$ Kenyon cells, and
-inhibition keeps the most active $5\%$. On SIFT, GloVe and MNIST this fly hash
+computes a related transform (Fig.~\ref{fig:concept}a; Section~\ref{sec:bg}). On SIFT, GloVe and MNIST this fly hash
 beat classical LSH by up to about $3\times$. The projection was random,
 following the account that the wiring is effectively random \cite{caron2013}.
 
@@ -70,27 +72,28 @@ the fly hash's advantage is per active cell and not per operation;
 \item a comparison of the fly hash across four connectomes and seven
 hemispheres, on the 2017 benchmarks and on measured odour responses, against
 degree-preserving rewiring and against controls that change one degree
-sequence at a time at equal connection count.
+sequence at a time at equal connection count;
+\item evidence that the fan-out skew that costs retrieval in the model is a
+conserved trait of the circuit across four animals, reinforced by synaptic
+weights and related to odour tuning breadth.
 \end{itemize}
 
 \begin{figure*}[t]
 \centerline{\includegraphics[width=\textwidth]{fig_concept.pdf}}
 \caption{(a) The fly hash: glomerular input $x$ is expanded through a binary
 projection $M$ onto Kenyon cells and the $k$ most active cells form the tag.
-(b) In the MaleCNS connectome glomeruli reach very different numbers of Kenyon
-cells; the dashed line is the even fan-out at the same number of connections.
+(b) Glomeruli reach very different numbers of Kenyon cells, and the profile is
+conserved: relative fan-out of the $\FanCommon$ shared glomeruli in all seven
+hemispheres, ordered by the mean; the dashed line is even fan-out.
 (c) Inputs per Kenyon cell, against the six of the 2017 construction.}
 \label{fig:concept}
 \end{figure*}
 
 \section{Background}
+\label{sec:bg}
 
 \emph{Connectomes.} A connectome is a wiring diagram at the resolution of
-individual neurons and synapses. It is reconstructed from electron-microscopy
-images of a whole brain or nervous system: every neuron is traced and every
-synapse between two neurons is detected and counted. For the adult fruit fly
-this became feasible only recently; the four connectomes used here each contain
-the complete mushroom body, the part of the brain studied in this paper.
+individual neurons and synapses. It is reconstructed from electron-microscopy images by tracing every neuron and detecting every synapse. For the adult fruit fly this became feasible only recently; the four connectomes used here each contain the complete mushroom body.
 
 \emph{The fly olfactory pathway.} An odour activates olfactory receptor neurons
 in the antennae. Neurons that express the same receptor type all converge onto
@@ -100,9 +103,7 @@ first represented as a vector of about $50$ glomerular activities. Projection
 neurons carry each glomerulus's signal to the mushroom body, where about
 $2{,}000$ \emph{Kenyon cells} per hemisphere each receive input from a handful
 of glomeruli. A single inhibitory neuron (APL) feeds back onto all Kenyon cells,
-so that only the most strongly driven few percent fire. The resulting sparse
-set of active Kenyon cells is the fly's internal code for the odour and the
-basis for associative memory \cite{dasgupta2017,caron2013}. In this paper $M$ is
+so that only the most strongly driven few percent fire. This sparse set of active Kenyon cells is the fly's code for the odour and the basis of associative memory \cite{dasgupta2017,caron2013}. In this paper $M$ is
 the glomerulus-to-Kenyon-cell part of that pathway: which glomeruli each
 Kenyon cell receives input from.
 
@@ -367,50 +368,19 @@ negative in all \AnimN{} hemispheres, \AnimOdourMin{} to \AnimOdourMax{}, and
 \AnimMatchedMin{} to \AnimMatchedMax{} on the shared glomeruli. The sign is
 consistent, but only \AnimOdourNSig{} unadjusted $p$-values are below $0.05$, and
 after Holm adjustment across the seven hemispheres none is (smallest adjusted
-$p=\AnimOdourHolmMin$ on own and $\AnimMatchedHolmMin$ on shared glomeruli). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a,
-Table~\ref{tab:wiring}) the connectome scores $\PrimaryReal$ against
+$p=\AnimOdourHolmMin$ on own and $\AnimMatchedHolmMin$ on shared glomeruli). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a; per-size table in the supplement) the connectome scores $\PrimaryReal$ against
 $\PrimaryNullMean\pm\PrimaryNullSD$, \PrimaryRel{} (two-sided
 $p=\PrimaryPtwo$; $\PrimaryPHolmAll$ with all five sizes as one family); the
 bootstrap $90\%$ interval is \BootLo{} to \BootHi{}, which lies within the
 chosen $\pm\MarginPrimary$ margin but not within $\pm2.5\%$; in a simulation
 from one fitted generator, this interval covered the true value in \CovNew{}
 of \CovDatasets{} datasets, which calibrates it for that generator only, and the two-sided test has $80\%$ power at
-\MdeDown{} downward and \MdeUp{} upward. The deficit depends on the input
-(Table~\ref{tab:rob}): imputing unmeasured responses gives \ImputeRelMin{} to
+\MdeDown{} downward and \MdeUp{} upward. Across \RobN{} one-factor variations (supplement) the deficit ranges from
+\RobRelMin{} to \RobRelMax{}, and it depends on the input: imputing unmeasured responses gives \ImputeRelMin{} to
 \ImputeRelMax{} ($p\ge\ImputePMin$), and all $46$ glomeruli with data give no
 difference.
 
-\begin{table}[t]
-\caption{Odours, MaleCNS: connectome against the null ($B=\NullB$) and
-comparison matrices (relative to the null mean, \%). $^\ast$primary.}
-\label{tab:wiring}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{2.4pt}
-\begin{tabular}{rcccccccc}
-\toprule
-$k$ & conn. & null & $\Delta$\% & $p$ & $p_\text{Holm}$ & fan flat & 6 unif. & balanced \\
-\midrule
-\WiringRows
-\bottomrule
-\end{tabular}
-\end{table}
 
-\begin{table}[t]
-\caption{Odours, MaleCNS, primary size, one-factor variations ($B=\RobB$
-nulls each): relative difference (\%) and two-sided $p$.}
-\label{tab:rob}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lcc}
-\toprule
-variation & $\Delta$\% & $p$ \\
-\midrule
-\RobRows
-\bottomrule
-\end{tabular}
-\end{table}
 
 By $Q$ the pairing departs from its null in \AnimQNSig{} of \AnimN{} hemispheres
 ($Q$ $z$ from \AnimQzMin{} to \AnimQzMax{}; raw $p=\AnimQRaw$ each, Holm-adjusted
@@ -453,8 +423,8 @@ whereas even inputs per cell lowers it in all \AnimCtrlN{} (\AnimInLo{} to
 \AnimInHi{}, every interval below zero); its gains are confined to some small
 hash sizes. The six-input
 construction of 2017 behaves like the even-fan-out control. The measured
-fan-out is strongly skewed (Fig.~\ref{fig:concept}b; up to $\FanMax$ cells for
-\FanMaxGlom{} against a mean near $195$). This shows that more even fan-out would
+fan-out is strongly skewed (up to $\FanMax$ cells for \FanMaxGlom{} in MaleCNS right, against a mean near
+$195$). This shows that more even fan-out would
 retrieve better at equal cost in this model, not that the skew is a biological
 cost: it may serve other ends.
 
@@ -464,6 +434,26 @@ by \NoCentSmallMin{} to \NoCentSmallMax{} at the smallest hash size and by at mo
 \NoCentLargeAbs{} at the largest, and changes the odour results strongly at small
 $k$, where drive on non-negative input then tracks the number of inputs
 (supplement).
+
+\subsection{The skew is conserved across animals}
+
+If the skew in fan-out were reconstruction noise, it would differ between
+connectomes. It does not (Fig.~\ref{fig:concept}b). Over the $\FanCommon$
+glomeruli all hemispheres share, relative fan-out correlates between animals at
+Spearman $\rho=\FanBetweenMin$ to $\FanBetweenMax$ (median $\FanBetweenMed$) and
+between the two hemispheres of one animal at $\FanWithinMin$ to $\FanWithinMax$;
+it spans a factor of about $\FanSpread$, from \FanTop{} at the top to \FanBottom{}
+at the bottom. Synaptic weights do not offset it: mean synapses per connection
+correlate positively with fan-out in \FanWeightPos{} of \FanN{} hemispheres
+($\rho$ from $\FanWeightMin$ to $\FanWeightMax$, $p<0.05$ in \FanWeightSig), so
+total synaptic input per glomerulus is even more uneven than fan-out. In DoOR,
+glomeruli with larger fan-out respond to more odorants and more variably
+(response breadth $\rho=\FanBreadthMin$ to $\FanBreadthMax$, response SD
+$\FanSdMin$ to $\FanSdMax$ across hemispheres, $p<0.05$ in \FanSdSig{} for SD).
+These correlations share one odour dataset and a conserved fan-out profile, so
+they are one weak association, not seven independent ones. The top of the
+ranking includes glomeruli described as food-responsive and overconvergent in
+\cite{zheng2022}.
 
 \section{Discussion}
 
@@ -481,9 +471,14 @@ test.
 The algorithmic claim needs a qualifier. Against the tested real-valued Gaussian
 baseline the fly hash's advantage is per active cell: Gaussian projections given the same projection arithmetic
 retrieve better on every dataset and input dimension we tested. Against one-bit
-codes, and at the circuit's own scale, the comparison is closer. The finding on
-fan-out suggests an improvement, a fly hash with even glomerular fan-out at
-equal cost, which we leave to future work.
+codes, and at the circuit's own scale, the comparison is closer. The random construction of 2017 already has nearly even fan-out, so the
+fan-out result is not an improvement over the standard fly hash; it locates
+where the circuit departs from it. That departure is conserved across animals
+and sexes and reinforced by synaptic weights, so it is unlikely to be
+incidental. A circuit that gives more Kenyon cells, and stronger synapses, to
+broadly tuned and food-related channels pays for it in generic similarity
+search; what it gains in return, for instance in innate or learned valence of
+food odours, is the question these results raise.
 
 \section{Limitations}
 

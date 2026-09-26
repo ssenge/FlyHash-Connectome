@@ -281,3 +281,53 @@ def add_degrees(cfg: Config) -> None:
         h["fan_out"] = dict(zip(p.glomeruli, p.fan_out().tolist()))
         h["inputs"] = np.bincount(p.inputs()).tolist()
     ex.save(out, "connectomes.json")
+
+
+def fanout_analysis(cfg: Config) -> dict:
+    """Is the skew in glomerular fan-out a conserved trait, and what does it
+    track? Writes results/fanout.json:
+
+      conservation  Spearman correlation of relative fan-out (fan-out / mean)
+                    over the glomeruli all hemispheres share, for every pair
+                    of hemispheres, within and between animals
+      weights       per hemisphere, Spearman correlation between fan-out and
+                    mean synapses per connection (positive: weights reinforce
+                    the skew; negative: they compensate)
+      odours        per hemisphere, Spearman correlation between fan-out and
+                    DoOR response breadth (fraction of measured odorants with
+                    response > 0.2) and response SD, over the DoOR glomeruli.
+                    All hemispheres use the same DoOR data and conserved
+                    fan-out, so these are not independent tests.
+    """
+    import itertools
+    import json
+    from scipy.stats import spearmanr
+    from . import experiments as ex
+    proj = {f"{ds}_{sd}": projection(cfg, ds, sd) for ds, sd in HEMISPHERES}
+    common = sorted(set.intersection(*(set(p.glomeruli) for p in proj.values())))
+    rel = {}
+    out = {"common": common, "hemispheres": list(proj), "weights": {}, "odours": {}}
+    for k, p in proj.items():
+        b = p.matrix > 0
+        fan = b.sum(1)
+        rel[k] = {g: float(f / fan.mean()) for g, f in zip(p.glomeruli, fan)}
+        r = spearmanr(fan, p.matrix.sum(1) / np.maximum(fan, 1))
+        out["weights"][k] = {"rho": float(r.correlation), "p": float(r.pvalue)}
+        od = fh.load_odours(cfg, p.glomeruli)
+        x = np.where(od.observed, od.x, np.nan)
+        f = np.array([fan[p.glomeruli.index(g)] for g in od.glomeruli])
+        res = {}
+        for name, v in (("breadth", np.nanmean(x > 0.2, 0)), ("sd", np.nanstd(x, 0))):
+            r = spearmanr(f, v)
+            res[name] = {"rho": float(r.correlation), "p": float(r.pvalue)}
+        out["odours"][k] = res
+    M = np.array([[rel[k][g] for g in common] for k in proj])
+    pairs = []
+    for a, b in itertools.combinations(range(len(proj)), 2):
+        ka, kb = list(proj)[a], list(proj)[b]
+        pairs.append({"a": ka, "b": kb, "same_animal": ka.split("_")[0] == kb.split("_")[0],
+                      "rho": float(spearmanr(M[a], M[b]).correlation)})
+    out["conservation"] = pairs
+    out["fanout_rel"] = M.tolist()
+    ex.save(out, "fanout.json")
+    return out

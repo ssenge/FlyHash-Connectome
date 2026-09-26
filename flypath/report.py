@@ -209,6 +209,9 @@ def latex(pr, ar, cv, rb, co) -> str:
     ct = _load("controls.json")
     if ct and ct.get("hemispheres"):
         mac += control_macros(ct)
+    fo = _load("fanout.json")
+    if fo:
+        mac += fanout_macros(fo)
     return "\n".join(mac) + "\n"
 
 
@@ -644,6 +647,31 @@ def control_macros(ct: dict) -> list[str]:
                     _mac(f"Anim{name}Hi", f"{max(x['estimate'] for x in v):+.1f}\\%")]
         mac.append(_mac("AnimCtrlN", len(pooled)))
     return mac
+
+
+def fanout_macros(fo: dict) -> list[str]:
+    between = [c["rho"] for c in fo["conservation"] if not c["same_animal"]]
+    within = [c["rho"] for c in fo["conservation"] if c["same_animal"]]
+    M = np.array(fo["fanout_rel"])
+    mean = M.mean(0)
+    order = np.argsort(-mean)
+    w = [v["rho"] for v in fo["weights"].values()]
+    br = [v["breadth"]["rho"] for v in fo["odours"].values()]
+    sd = [v["sd"]["rho"] for v in fo["odours"].values()]
+    return [_mac("FanCommon", len(fo["common"])),
+            _mac("FanBetweenMin", f"{min(between):.2f}"), _mac("FanBetweenMax", f"{max(between):.2f}"),
+            _mac("FanBetweenMed", f"{np.median(between):.2f}"),
+            _mac("FanWithinMin", f"{min(within):.2f}"), _mac("FanWithinMax", f"{max(within):.2f}"),
+            _mac("FanSpread", f"{mean[order[0]] / mean[order[-1]]:.0f}"),
+            _mac("FanTop", ", ".join(fo["common"][i] for i in order[:5])),
+            _mac("FanBottom", ", ".join(fo["common"][i] for i in order[-3:])),
+            _mac("FanWeightPos", sum(v > 0 for v in w)), _mac("FanN", len(w)),
+            _mac("FanWeightSig", sum(v["rho"] > 0 and v["p"] < 0.05 for v in fo["weights"].values())),
+            _mac("FanWeightMin", f"{min(w):+.2f}"), _mac("FanWeightMax", f"{max(w):+.2f}"),
+            _mac("FanBreadthPos", sum(v > 0 for v in br)),
+            _mac("FanBreadthMin", f"{min(br):+.2f}"), _mac("FanBreadthMax", f"{max(br):+.2f}"),
+            _mac("FanSdMin", f"{min(sd):+.2f}"), _mac("FanSdMax", f"{max(sd):+.2f}"),
+            _mac("FanSdSig", sum(v["sd"]["p"] < 0.05 for v in fo["odours"].values()))]
 
 
 def supplement(pr, ar, cv, rb, co) -> str:

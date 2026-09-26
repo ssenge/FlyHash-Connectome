@@ -128,18 +128,27 @@ def fig_concept(an: dict) -> None:
     ax.set_title("(a) fly hash", loc="left", fontsize=15)
 
     h = an["hemispheres"]["malecns_R"]
-    fo = np.array(sorted(h["fan_out"].values(), reverse=True))
     ax = fig.add_subplot(gs[1])
-    ax.bar(np.arange(len(fo)), fo, width=0.85, color=PALETTE["blue_main"], edgecolor="black", lw=0.6)
-    ax.axhline(fo.mean(), color=PALETTE["green_3"], ls="--", lw=3,
-               label=f"even, same connections ({fo.mean():.0f})")
-    top = max(h["fan_out"], key=h["fan_out"].get)
-    ax.text(2.0, fo[0] * 0.86, f"{top}: {fo[0]}", fontsize=12, va="center")
-    ax.set_xticks([])
-    ax.set_xlabel(f"{len(fo)} glomeruli, sorted")
-    ax.set_ylabel("Kenyon cells reached")
-    ax.legend(loc="upper right", fontsize=11)
-    ax.set_title("(b) fan-out, MaleCNS R", loc="left", fontsize=15)
+    fz = _load("fanout.json")
+    M = np.array(fz["fanout_rel"])
+    order = np.argsort(-M.mean(0))
+    shades = {"malecns": PALETTE["blue_main"], "hemibrain": PALETTE["red_strong"],
+              "flywire": PALETTE["green_3"], "banc": PALETTE["violet"]}
+    seen = set()
+    for row, key in zip(M, fz["hemispheres"]):
+        ds = key.split("_")[0]
+        ax.plot(np.arange(len(order)), row[order], "-o", ms=3, lw=1.3, alpha=0.8, color=shades[ds],
+                label={"malecns": "MaleCNS", "hemibrain": "hemibrain", "flywire": "FlyWire",
+                       "banc": "BANC"}[ds] if ds not in seen else None)
+        seen.add(ds)
+    ax.axhline(1, color=PALETTE["grey"], ls="--", lw=2.5, label="even")
+    names = [fz["common"][i] for i in order]
+    ax.set_xticks([0, len(names) - 1])
+    ax.set_xticklabels([names[0], names[-1]], fontsize=12)
+    ax.set_xlabel(f"{len(names)} glomeruli, by mean fan-out")
+    ax.set_ylabel("fan-out / mean")
+    ax.legend(loc="upper right", fontsize=11, ncol=2)
+    ax.set_title("(b) fan-out, 7 hemispheres", loc="left", fontsize=15)
 
     ax = fig.add_subplot(gs[2])
     ins = np.array(h["inputs"], float)
@@ -192,7 +201,7 @@ def fig_budget(rp: dict, cb: dict) -> None:
     ground truth differ between (b) and (c), so only pairs within a panel are
     comparable."""
     apply_style(16, 2.0)
-    fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(13, 4.0), gridspec_kw={"width_ratios": [1.15, 1, 1]})
+    fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(13, 3.6), gridspec_kw={"width_ratios": [1.15, 1, 1]})
     ds = rp["dimension_sweep"]
     d = [r["d"] for r in ds["rows"]]
     _line(a1, d, [r["lsh"]["ap"]["mean"][0] for r in ds["rows"]], PALETTE["red_strong"],
@@ -225,7 +234,7 @@ def fig_budget(rp: dict, cb: dict) -> None:
         _bar_text(ax, b2, lsh, "{:.2f}", 0.015, fontsize=11)
         ax.set_xticks(x)
         ax.set_xticklabels([NAMES[n] for n in DATASETS], fontsize=14)
-        ax.set_ylim(0, 1.15)
+        ax.set_ylim(0, 1.3)
         ax.legend(loc="upper left", fontsize=13)
         ax.set_title(title, loc="left", fontsize=16)
     a2.set_ylabel("AP@200")
@@ -239,7 +248,7 @@ def fig_connectomes(pr: dict, an: dict) -> None:
     against its own null under the 2017 protocol; (c) the odour analysis in
     every hemisphere."""
     apply_style(15, 2.0)
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), gridspec_kw={"width_ratios": [1, 1.45, 1.2]})
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.1), gridspec_kw={"width_ratios": [1, 1.45, 1.2]})
     ax = axes[0]
     null, real = np.array(pr["null_scores"]), np.array(pr["real_scores"])
     rng = np.random.default_rng(0)
@@ -312,7 +321,7 @@ def fig_controls(ct: dict) -> None:
     hash sizes."""
     from .report import pooled_control
     apply_style(16, 2.0)
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.3), gridspec_kw={"width_ratios": [1.1, 1.3]})
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 3.9), gridspec_kw={"width_ratios": [1.1, 1.3]})
     series = [("real", "connectome", PALETTE["blue_main"], None),
               ("in_equal", "inputs per cell even", PALETTE["red_2"], None),
               ("out_equal", "fan-out even", PALETTE["green_3"], None),
@@ -367,7 +376,7 @@ def build() -> list[str]:
     pr, rp = _load("primary.json"), _load("replication.json")
     cb, an = _load("connectome_benchmarks.json"), _load("connectomes.json")
     done = []
-    if an and an.get("hemispheres", {}).get("malecns_R", {}).get("fan_out"):
+    if an and an.get("hemispheres", {}).get("malecns_R", {}).get("fan_out") and _load("fanout.json"):
         fig_concept(an)
         done.append("fig_concept")
     if rp:
