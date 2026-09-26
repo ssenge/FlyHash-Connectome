@@ -206,6 +206,9 @@ def latex(pr, ar, cv, rb, co) -> str:
     an = _load("connectomes.json")
     if an and an.get("hemispheres"):
         mac += animal_macros(an)
+    ct = _load("controls.json")
+    if ct and ct.get("hemispheres"):
+        mac += control_macros(ct)
     return "\n".join(mac) + "\n"
 
 
@@ -324,6 +327,15 @@ def _benchmark_macros(rp, cb) -> list[str]:
                         f"{fly / lsh:.1f}$\\times$ & {r['lsh_ops_10d_bits']} & "
                         f"{r['lsh_ops_10d']['ap']['mean']:.3f} & {best:.3f} \\\\")
         mac.append("\\newcommand{\\DimRows}{" + "\n".join(rows) + "}")
+    if rp and rp.get("dimension_sweep"):
+        def ratio(sweep, d):
+            r = next(x for x in sweep["rows"] if x["d"] == d)
+            return r["fly_10d"]["ap"]["mean"][0] / r["lsh"]["ap"]["mean"][0]
+        mac += [_mac("IdxRatioEight", f"{ratio(rp['dimension_sweep'], 8):.2f}"),
+                _mac("IdxRatioSixteen", f"{ratio(rp['dimension_sweep'], 16):.2f}")]
+        tie = rp.get("dimension_sweep_random_ties")
+        mac += [_mac("TieRatioEight", f"{ratio(tie, 8):.2f}" if tie else "(pending)"),
+                _mac("TieRatioSixteen", f"{ratio(tie, 16):.2f}" if tie else "(pending)")]
     if cb:
         mac += _control_macros(cb)
     return mac
@@ -352,11 +364,17 @@ def _control_macros(cb: dict) -> list[str]:
     rel = lambda key: [_row_at(per, k)[key] / _row_at(per, k)["null_mean"] - 1
                        for per in img for k in per["sizes"]]
     conn = [_row_at(per, k)["relative_difference"] for per in img for k in per["sizes"]]
+    nc = [100 * (_row_at(per["no_centring"], min(per["sizes"]))["real"] / _row_at(per, min(per["sizes"]))["real"] - 1)
+          for n, per in cb["datasets"].items() if n != "odours" and per.get("no_centring")]
+    ncl = [100 * (_row_at(per["no_centring"], max(per["sizes"]))["real"] / _row_at(per, max(per["sizes"]))["real"] - 1)
+           for n, per in cb["datasets"].items() if n != "odours" and per.get("no_centring")]
     return ["\\newcommand{\\ControlRows}{" + "\n".join(rows) + "}",
-            _mac("CtrlOutMin", f"{pct(min(rel('out_equal')), 0)}\\%"),
-            _mac("CtrlOutMax", f"{pct(max(rel('out_equal')), 0)}\\%"),
-            _mac("CtrlInMin", f"{pct(min(rel('in_equal')), 0)}\\%"),
-            _mac("CtrlInMax", f"{pct(max(rel('in_equal')), 0)}\\%"),
+            _mac("NoCentSmallMin", f"{min(nc):+.0f}\\%"), _mac("NoCentSmallMax", f"{max(nc):+.0f}\\%"),
+            _mac("NoCentLargeAbs", f"{max(abs(v) for v in ncl):.0f}\\%"),
+            _mac("BenchOutMin", f"{pct(min(rel('out_equal')), 0)}\\%"),
+            _mac("BenchOutMax", f"{pct(max(rel('out_equal')), 0)}\\%"),
+            _mac("BenchInMin", f"{pct(min(rel('in_equal')), 0)}\\%"),
+            _mac("BenchInMax", f"{pct(max(rel('in_equal')), 0)}\\%"),
             _mac("ConnImgMin", f"{pct(min(conn), 1)}\\%"), _mac("ConnImgMax", f"{pct(max(conn), 1)}\\%"),
             _mac("CtrlBothMin", f"{pct(min(both), 1)}\\%"), _mac("CtrlBothMax", f"{pct(max(both), 1)}\\%"),
             _mac("CtrlSixMin", f"{pct(min(six), 1)}\\%"), _mac("CtrlSixMax", f"{pct(max(six), 1)}\\%")]
@@ -427,6 +445,7 @@ def _hemi_stats(h: dict) -> dict:
             "proto_min": min(r["relative_difference"] for r in proto),
             "proto_max": max(r["relative_difference"] for r in proto),
             "proto_mean": float(np.mean([r["relative_difference"] for r in proto])),
+            "proto_median": float(np.median([r["relative_difference"] for r in proto])),
             "both_mean": float(np.mean([r["both_equal"] / r["null_mean"] - 1 for r in proto])),
             "six_mean": float(np.mean([r["random_2017"] / r["null_mean"] - 1 for r in proto]))}
 
@@ -441,9 +460,7 @@ def animal_macros(an: dict) -> list[str]:
                     f"{f['fan_out_cv']:.2f} & {h['structure']['z']:+.1f} & "
                     f"{pct(s['prim']['relative_difference'], 1)} ({pval(s['prim']['p_two_sided'])}) & "
                     f"{pct(s['matched']['relative_difference'], 1)} ({pval(s['matched']['p_two_sided'])}) & "
-                    f"{pct(s['proto_min'], 1)} to {pct(s['proto_max'], 1)} & "
-                    f"{pct(s['both_mean'], 1)} & {pct(s['six_mean'], 1)} & "
-                    f"{s['mnist_ratio']:.1f} \\\\".replace(",", "{,}"))
+                    f"{pct(s['proto_median'], 1)} & {s['mnist_ratio']:.1f} \\\\".replace(",", "{,}"))
     st = {k: _hemi_stats(h) for k, h in hs.items()}
     allproto = [r for s in st.values() for r in s["proto"]]
     odour = [s["prim"] for s in st.values()]
@@ -456,7 +473,14 @@ def animal_macros(an: dict) -> list[str]:
     an_odour = {a: np.mean([s["prim"]["relative_difference"] for s in v]) for a, v in animals.items()}
     an_proto = {a: np.mean([s["proto_mean"] for s in v]) for a, v in animals.items()}
     pfloor = 2 / (an["B_bench"] + 1)
+    from .stats import holm
+    h_own = holm([r["p_two_sided"] for r in odour])
+    h_mat = holm([r["p_two_sided"] for r in matched])
+    h_q = holm([h["structure"]["test"]["p_upper"] for h in hs.values()])
     return ["\\newcommand{\\AnimalRows}{" + "\n".join(rows) + "}",
+            _mac("AnimOdourHolmMin", pval(min(h_own))), _mac("AnimMatchedHolmMin", pval(min(h_mat))),
+            _mac("AnimQHolm", pval(min(h_q))),
+            _mac("AnimQRaw", pval(min(h["structure"]["test"]["p_upper"] for h in hs.values()))),
             _mac("AnimN", len(hs)), _mac("AnimAnimals", len(animals)),
             _mac("AnimB", an["B"]), _mac("AnimBBench", an["B_bench"]),
             _mac("AnimTrials", an["trials"]), _mac("AnimPFloor", pval(pfloor)),
@@ -562,6 +586,64 @@ def _jaccard_plateau(cv: dict, tol: float = 0.005) -> tuple[str, float]:
 
 
 # ------------------------------------------------------------------ supplement
+
+
+# ------------------------------------------------------------------ control intervals
+
+CTRL_KEYS = ("in_equal", "out_equal", "both_equal", "random_2017")
+
+
+def pooled_control(h: dict, key: str, datasets=("sift", "glove", "mnist", "odours"),
+                   draws: int = 2000, seed: int = 0) -> dict:
+    """One hemisphere's control effect averaged over datasets and hash sizes:
+    mean of 100 * (mean ctrl / mean null - 1), with a 95% bootstrap that
+    resamples trials independently within each dataset."""
+    rng = np.random.default_rng(seed)
+    est, boots = [], []
+    for nm in datasets:
+        r = h[nm]
+        c, n = np.array(r[key]), np.array(r["null"])            # (trials, sizes)
+        est.append(100 * (c.mean(0) / n.mean(0) - 1))
+        idx = rng.integers(0, len(c), (draws, len(c)))
+        boots.append(100 * (c[idx].mean(1) / n[idx].mean(1) - 1))   # (draws, sizes)
+    est = float(np.mean(np.concatenate(est)))
+    boot = np.concatenate(boots, axis=1).mean(1)
+    return {"estimate": est, "ci95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))]}
+
+
+def control_macros(ct: dict) -> list[str]:
+    hs = ct["hemispheres"]
+    mac = [_mac("CtrlB", ct["B"])]
+    if "malecns_R" in hs:
+        h = hs["malecns_R"]
+        mac.append(_mac("CtrlTrials", h["sift"]["trials"]))
+        img = [nm for nm in ("sift", "glove", "mnist") if nm in h]
+        cells = lambda key, names: [c for nm in names for c in h[nm]["contrasts"][key]]
+        for key, name in (("out_equal", "Out"), ("in_equal", "In")):
+            cs = cells(key, img)
+            mac += [_mac(f"Ctrl{name}Min", f"{min(c['estimate'] for c in cs):+.0f}\\%"),
+                    _mac(f"Ctrl{name}Max", f"{max(c['estimate'] for c in cs):+.0f}\\%"),
+                    _mac(f"Ctrl{name}Pos", sum(c["ci95"][0] > 0 for c in cs)),
+                    _mac(f"Ctrl{name}Neg", sum(c["ci95"][1] < 0 for c in cs))]
+            if "odours" in h:
+                co = h["odours"]["contrasts"][key]
+                mac += [_mac(f"Ctrl{name}OdMin", f"{min(c['estimate'] for c in co):+.0f}\\%"),
+                        _mac(f"Ctrl{name}OdMax", f"{max(c['estimate'] for c in co):+.0f}\\%"),
+                        _mac(f"Ctrl{name}OdPos", sum(c["ci95"][0] > 0 for c in co))]
+        mac.append(_mac("CtrlCells", len(cells("out_equal", img))))
+        if "odours" in h:
+            mac.append(_mac("CtrlOdCells", len(h["odours"]["contrasts"]["out_equal"])))
+    pooled = {k: {key: pooled_control(h, key) for key in CTRL_KEYS}
+              for k, h in hs.items() if all(nm in h for nm in ("sift", "glove", "mnist", "odours"))}
+    if pooled:
+        for key, name in (("out_equal", "Out"), ("in_equal", "In"), ("both_equal", "Both")):
+            v = [p[key] for p in pooled.values()]
+            mac += [_mac(f"Anim{name}PosCI", sum(x["ci95"][0] > 0 for x in v)),
+                    _mac(f"Anim{name}NegCI", sum(x["ci95"][1] < 0 for x in v)),
+                    _mac(f"Anim{name}Lo", f"{min(x['estimate'] for x in v):+.1f}\\%"),
+                    _mac(f"Anim{name}Hi", f"{max(x['estimate'] for x in v):+.1f}\\%")]
+        mac.append(_mac("AnimCtrlN", len(pooled)))
+    return mac
 
 
 def supplement(pr, ar, cv, rb, co) -> str:
@@ -675,7 +757,7 @@ def readme_block(pr, ar, rb, co) -> str:
     equiv = b["equivalent"][f"{b['primary_margin']:.3f}"]
     L += ["", f"Two-stage bootstrap 90% interval for the relative difference at the primary size: "
               f"[{pct(b['relative_ci'][0], 1)}%, {pct(b['relative_ci'][1], 1)}%]; "
-              f"equivalence at the pre-specified +/-{100 * b['primary_margin']:.0f}% margin: "
+              f"interval within the chosen +/-{100 * b['primary_margin']:.0f}% margin: "
               f"{'yes' if equiv else 'no'}."]
     if m:
         i = m["sizes"].index(pr["primary_k"])

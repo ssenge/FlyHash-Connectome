@@ -44,6 +44,12 @@ def main(argv: list[str] | None = None) -> int:
                                             "and BANC, every hemisphere (~3 h)")
     n.add_argument("--only", help="comma-separated hemispheres, e.g. flywire_L,banc_R")
 
+    k = sub.add_parser("controls", help="trial-level degree controls with intervals, all "
+                                         "hemispheres, and the tie-rule sensitivity of the "
+                                         "dimension sweep (~3 h)")
+    k.add_argument("--only", help="comma-separated hemispheres")
+    k.add_argument("--ties", action="store_true", help="also run the tie-rule sweep")
+
     sub.add_parser("report", help="regenerate figure, LaTeX numbers, README block")
     sub.add_parser("checksums", help="verify input data against DATA_CHECKSUMS.txt")
 
@@ -89,6 +95,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "connectomes":
         from . import connectomes
         connectomes.compare(cfg, only=args.only.split(",") if args.only else None)
+        return 0
+
+    if args.cmd == "controls":
+        from . import replication as rp
+        rp.controls(cfg, only=args.only.split(",") if args.only else None)
+        if args.ties:
+            rp.tie_sweep(cfg)
         return 0
 
     if args.cmd == "report":

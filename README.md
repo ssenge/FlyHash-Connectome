@@ -15,17 +15,19 @@ In short:
   lengths (3.1x in AP@200 on MNIST at k = 4), and the lead shrinks with k.
   The published absolute values are not reproduced: the paper's score is
   undefined, and two protocol details come from later code.
-- **The connectomes behave like degree-preserving random matrices.** They keep
-  the fly hash's advantage and retrieve within a few percent of uniform
-  rewirings with the same degrees, slightly below them at large hash sizes.
-  Their pairing of glomeruli is structured in most reconstructions but does
-  not help retrieval.
-- **What costs retrieval is the skewed fan-out.** At equal connection count,
+- **The measured pairing gives no consistent advantage.** Across four
+  connectomes the fly hash keeps its advantage over LSH, and retrieval is
+  slightly lower than with degree-preserving rewiring (median -1.6%). The
+  pairing departs from random in most reconstructions, but that did not
+  coincide with better retrieval under these protocols.
+- **Separately, even fan-out helps in the model.** At equal connection count,
   giving every glomerulus the same number of Kenyon cells improves retrieval
-  (up to +18% on image and word input); equalising inputs per cell does not.
-- **The advantage is per active cell, not per operation.** Real-valued Gaussian
-  projections given the same projection arithmetic as the fly network retrieve
-  better on every dataset and input dimension tested.
+  in all seven hemispheres (+3.9% to +6.4% on average, 95% intervals above
+  zero); equalising inputs per cell lowers it on average.
+- **Against real-valued LSH, the advantage is per active cell, not per
+  operation.** Gaussian projections given the same projection arithmetic as
+  the fly network retrieve better on every dataset and input dimension tested;
+  against one-bit codes the comparison is closer.
 - **On odours** (DoOR mixtures) the MaleCNS connectome scores about 2% below
   its rewirings; the deficit disappears when unmeasured responses are imputed.
 
@@ -48,7 +50,7 @@ Primary hash size k = 92 (5% of 1838 Kenyon cells), 4000 synthetic mixtures, 200
 | 64 | 0.3963 | 0.4001 +/- 0.0039 | -0.94% | 0.348 | 1.000 |
 | 92 (primary) | 0.4063 | 0.4148 +/- 0.0035 | -2.06% | 0.020 | (primary, not adjusted) |
 
-Two-stage bootstrap 90% interval for the relative difference at the primary size: [-3.1%, -0.8%]; equivalence at the pre-specified +/-5% margin: yes.
+Two-stage bootstrap 90% interval for the relative difference at the primary size: [-3.1%, -0.8%]; interval within the chosen +/-5% margin: yes.
 
 Fly hash / Gaussian sign code at k = 92: 1.37x at k bits, 0.90x at matched storage (523 bits), 1.33x at matched operations (102 bits).
 
@@ -115,10 +117,12 @@ The robustness check at a 5-synapse threshold needs a second graph:
   entries are unmeasured and set to zero in the baseline (imputations are
   sensitivity analyses). Ground truth: raw Euclidean *k*-NN; normalised and
   angular distances are sensitivity analyses.
-- **Inference.** Exact randomization test against 200 nulls, Holm across
-  secondary sizes; a two-stage bootstrap (resampling source odorants,
-  regenerating the benchmark, re-drawing null matrices) whose coverage is
-  checked by simulation; a pre-specified ±5% equivalence margin; power under a
+- **Inference.** Approximate Monte Carlo randomization test against 200
+  curveball nulls, Holm across secondary sizes (primary size and families
+  fixed after first results, not preregistered); a two-stage bootstrap
+  (resampling source odorants, regenerating the benchmark, drawing 20 nulls per
+  replicate from the same pool of 200) whose coverage was checked for one
+  fitted generator; a ±5% equivalence margin; two-sided power under a
   shift model.
 - **2017 protocol (reimplemented).** 10,000 vectors each of SIFT, GloVe,
   MNIST; 1,000 queries; top 2% neighbours; AP@200 and recall@200 over 50

@@ -1,0 +1,23 @@
+{
+  "datasets": ["sift", "glove", "mnist", "odours"],
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "train": 2500,
+  "validation": 500,
+  "queries": 500,
+  "gallery": 6500,
+  "top": 200,
+  "dimensions": 0,
+  "expansions": [4, 10, 20],
+  "fanins": [3, 6, 12],
+  "winners": [4, 8, 16, 32],
+  "epochs": 100,
+  "learning_rate": 0.02,
+  "batch_size": 100,
+  "bio_p": 2.0,
+  "bio_delta": 0.4,
+  "bio_rank": 2,
+  "diversity_steps": 2000,
+  "candidate_budget": 1000,
+  "timing_repeats": 3,
+  "bilateral": false
+}

@@ -167,6 +167,10 @@ Odours & 92 & 0.362 & 0.375 & -3.5 & 0.039 & 0.409 & 0.647 \\}
 128 & 16$\times$ & 0.041 & 0.118 & 2.8$\times$ & 65 & 0.591 & 0.294 \\
 256 & 32$\times$ & 0.040 & 0.110 & 2.8$\times$ & 130 & 0.689 & 0.277 \\
 512 & 64$\times$ & 0.033 & 0.104 & 3.2$\times$ & 255 & 0.772 & 0.264 \\}
+\newcommand{\IdxRatioEight}{0.31}
+\newcommand{\IdxRatioSixteen}{1.01}
+\newcommand{\TieRatioEight}{0.07}
+\newcommand{\TieRatioSixteen}{1.04}
 \newcommand{\ControlRows}{SIFT & 4 & +0.0 & -2.4 & +4.6 & +3.9 & +3.2 & +0.3 & +6.2 \\
 SIFT & 94 & -1.7 & -5.8 & +15.9 & +11.7 & +15.6 & -1.7 & +13.5 \\
 GloVe & 4 & +0.0 & +5.8 & +4.8 & +10.2 & +11.4 & -0.1 & +12.8 \\
@@ -175,23 +179,30 @@ MNIST & 4 & -0.2 & +0.1 & +3.1 & +4.1 & +7.2 & -0.3 & +5.1 \\
 MNIST & 94 & -1.6 & -5.4 & +7.8 & +2.2 & +7.1 & -1.6 & +2.7 \\
 Odours & 4 & -4.9 & +5.5 & +2.0 & +4.7 & -1.5 & -11.7 & +77.0 \\
 Odours & 92 & -3.5 & -2.9 & +3.2 & +0.9 & +8.9 & -2.7 & -6.5 \\}
-\newcommand{\CtrlOutMin}{+1\%}
-\newcommand{\CtrlOutMax}{+18\%}
-\newcommand{\CtrlInMin}{-7\%}
-\newcommand{\CtrlInMax}{+6\%}
+\newcommand{\NoCentSmallMin}{-7\%}
+\newcommand{\NoCentSmallMax}{-5\%}
+\newcommand{\NoCentLargeAbs}{2\%}
+\newcommand{\BenchOutMin}{+1\%}
+\newcommand{\BenchOutMax}{+18\%}
+\newcommand{\BenchInMin}{-7\%}
+\newcommand{\BenchInMax}{+6\%}
 \newcommand{\ConnImgMin}{-3.5\%}
 \newcommand{\ConnImgMax}{+1.8\%}
 \newcommand{\CtrlBothMin}{-6.1\%}
 \newcommand{\CtrlBothMax}{+11.7\%}
 \newcommand{\CtrlSixMin}{-6.4\%}
 \newcommand{\CtrlSixMax}{+15.6\%}
-\newcommand{\AnimalRows}{MaleCNS R & m & 1{,}886 & 5.28 & 0.53 & +2.8 & -2.1 (0.020) & -2.6 (0.020) & -10.5 to +3.1 & +3.7 & +5.4 & 2.3 \\
-MaleCNS L & m & 1{,}865 & 5.30 & 0.54 & +5.0 & -1.0 (0.257) & -0.8 (0.376) & -8.0 to +11.2 & +4.2 & +6.0 & 2.2 \\
-Hemibrain R & f & 1{,}761 & 6.05 & 0.50 & -0.0 & -0.6 (0.515) & -0.0 (0.990) & -6.3 to +7.4 & +2.9 & +2.9 & 2.3 \\
-FlyWire R & f & 2{,}406 & 5.00 & 0.47 & +11.8 & -2.8 (0.020) & -2.7 (0.020) & -8.9 to +4.1 & +1.4 & +4.2 & 2.4 \\
-FlyWire L & f & 2{,}378 & 5.12 & 0.49 & +17.5 & -1.6 (0.099) & -1.6 (0.079) & -6.6 to +3.6 & +3.0 & +4.2 & 2.9 \\
-BANC R & f & 2{,}046 & 5.03 & 0.57 & +6.0 & -3.0 (0.020) & -3.0 (0.020) & -8.9 to -0.1 & +3.3 & +4.7 & 2.3 \\
-BANC L & f & 2{,}089 & 5.18 & 0.55 & +9.1 & -1.3 (0.257) & -2.2 (0.059) & -9.0 to -0.2 & +1.8 & +4.5 & 2.3 \\}
+\newcommand{\AnimalRows}{MaleCNS R & m & 1{,}886 & 5.28 & 0.53 & +2.8 & -2.1 (0.020) & -2.6 (0.020) & -1.3 & 2.3 \\
+MaleCNS L & m & 1{,}865 & 5.30 & 0.54 & +5.0 & -1.0 (0.257) & -0.8 (0.376) & -1.0 & 2.2 \\
+Hemibrain R & f & 1{,}761 & 6.05 & 0.50 & -0.0 & -0.6 (0.515) & -0.0 (0.990) & -1.1 & 2.3 \\
+FlyWire R & f & 2{,}406 & 5.00 & 0.47 & +11.8 & -2.8 (0.020) & -2.7 (0.020) & -0.7 & 2.4 \\
+FlyWire L & f & 2{,}378 & 5.12 & 0.49 & +17.5 & -1.6 (0.099) & -1.6 (0.079) & -2.0 & 2.9 \\
+BANC R & f & 2{,}046 & 5.03 & 0.57 & +6.0 & -3.0 (0.020) & -3.0 (0.020) & -3.2 & 2.3 \\
+BANC L & f & 2{,}089 & 5.18 & 0.55 & +9.1 & -1.3 (0.257) & -2.2 (0.059) & -3.1 & 2.3 \\}
+\newcommand{\AnimOdourHolmMin}{0.139}
+\newcommand{\AnimMatchedHolmMin}{0.139}
+\newcommand{\AnimQHolm}{0.069}
+\newcommand{\AnimQRaw}{0.010}
 \newcommand{\AnimN}{7}
 \newcommand{\AnimAnimals}{4}
 \newcommand{\AnimB}{100}
@@ -229,3 +240,34 @@ BANC L & f & 2{,}089 & 5.18 & 0.55 & +9.1 & -1.3 (0.257) & -2.2 (0.059) & -9.0 t
 \newcommand{\AnimCellsMax}{2{,}406}
 \newcommand{\AnimInMin}{5.00}
 \newcommand{\AnimInMax}{6.05}
+\newcommand{\CtrlB}{10}
+\newcommand{\CtrlTrials}{20}
+\newcommand{\CtrlOutMin}{+3\%}
+\newcommand{\CtrlOutMax}{+17\%}
+\newcommand{\CtrlOutPos}{17}
+\newcommand{\CtrlOutNeg}{0}
+\newcommand{\CtrlOutOdMin}{+1\%}
+\newcommand{\CtrlOutOdMax}{+3\%}
+\newcommand{\CtrlOutOdPos}{4}
+\newcommand{\CtrlInMin}{-7\%}
+\newcommand{\CtrlInMax}{+8\%}
+\newcommand{\CtrlInPos}{2}
+\newcommand{\CtrlInNeg}{11}
+\newcommand{\CtrlInOdMin}{-3\%}
+\newcommand{\CtrlInOdMax}{+19\%}
+\newcommand{\CtrlInOdPos}{2}
+\newcommand{\CtrlCells}{18}
+\newcommand{\CtrlOdCells}{6}
+\newcommand{\AnimOutPosCI}{7}
+\newcommand{\AnimOutNegCI}{0}
+\newcommand{\AnimOutLo}{+3.9\%}
+\newcommand{\AnimOutHi}{+6.4\%}
+\newcommand{\AnimInPosCI}{0}
+\newcommand{\AnimInNegCI}{7}
+\newcommand{\AnimInLo}{-4.2\%}
+\newcommand{\AnimInHi}{-1.1\%}
+\newcommand{\AnimBothPosCI}{7}
+\newcommand{\AnimBothNegCI}{0}
+\newcommand{\AnimBothLo}{+1.6\%}
+\newcommand{\AnimBothHi}{+4.8\%}
+\newcommand{\AnimCtrlN}{7}

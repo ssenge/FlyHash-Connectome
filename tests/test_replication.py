@@ -55,3 +55,16 @@ def test_winners_are_top_k():
     t = r.winners(y, 5).toarray().astype(bool)
     assert (t.sum(1) == 5).all()
     assert (np.where(t, y, np.inf).min(1) >= np.sort(y, 1)[:, -5]).all()
+
+
+def test_winners_random_ties_break_exact_ties_only():
+    y = np.array([[3.0, 1.0, 1.0, 1.0, 0.0]])
+    prio = np.array([0.0, 0.1, 0.9, 0.5, 0.99])
+    t = r.winners(y, 2, prio).toarray()[0]
+    assert t[0] == 1 and t[2] == 1 and t.sum() == 2   # the top cell, then the tied cell with top priority
+
+
+def test_contrast_is_ratio_of_means_with_interval():
+    c = r.contrast(np.array([1.1, 1.2, 1.0, 1.1]), np.array([1.0, 1.0, 1.0, 1.0]), draws=500)
+    assert np.isclose(c["estimate"], 10.0)
+    assert c["ci95"][0] <= c["estimate"] <= c["ci95"][1]

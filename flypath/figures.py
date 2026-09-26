@@ -184,10 +184,15 @@ def fig_replication(rp: dict) -> None:
 # ------------------------------------------------------------------ Fig. 3
 
 def fig_budget(rp: dict, cb: dict) -> None:
-    """(a) input dimension alone (MNIST by PCA), k = 4; (b) the fly hash's best
-    AP against real-valued LSH with the same projection arithmetic."""
-    apply_style(15, 2.0)
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 3.8), gridspec_kw={"width_ratios": [1, 1.5]})
+    """(a) one dataset at several input dimensions (MNIST by PCA), k = 4;
+    (b, c) the fly hash's best AP over the tested k grid against real-valued
+    LSH with the same projection arithmetic: (b) random matrices on the
+    original inputs, (c) the MaleCNS connectome on its own inputs (PCA to one
+    component per glomerulus; odours on measured glomeruli). The inputs and
+    ground truth differ between (b) and (c), so only pairs within a panel are
+    comparable."""
+    apply_style(16, 2.0)
+    fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(13, 4.0), gridspec_kw={"width_ratios": [1.15, 1, 1]})
     ds = rp["dimension_sweep"]
     d = [r["d"] for r in ds["rows"]]
     _line(a1, d, [r["lsh"]["ap"]["mean"][0] for r in ds["rows"]], PALETTE["red_strong"],
@@ -195,34 +200,35 @@ def fig_budget(rp: dict, cb: dict) -> None:
     _line(a1, d, [r["fly_10d"]["ap"]["mean"][0] for r in ds["rows"]], PALETTE["blue_main"],
           "fly hash, $m=10d$, $k=4$")
     _line(a1, d, [r["lsh_ops_10d"]["ap"]["mean"] for r in ds["rows"]], PALETTE["red_strong"],
-          "LSH, same arithmetic as fly", ls="--", marker="D")
+          "LSH, same arithmetic", ls="--", marker="D")
     _log2_axis(a1, d)
     a1.set_xlabel("input dimension $d$ (MNIST, PCA)")
     a1.set_ylabel("AP@200")
     a1.set_ylim(0, 1.05)
-    a1.legend(loc="upper left", fontsize=12)
-    a1.set_title("(a) per active cell vs per operation", loc="left", fontsize=15)
+    a1.legend(loc="upper left", fontsize=13)
+    a1.set_title("(a) varying $d$, one dataset", loc="left", fontsize=16)
 
     x = np.arange(len(DATASETS))
-    w = 0.2
-    fly10 = [max(rp["datasets"][n]["fly_10d"]["ap"]["mean"]) for n in DATASETS]
-    lsh10 = [rp["datasets"][n]["lsh_ops_10d"]["ap"]["mean"] for n in DATASETS]
-    conn = [max(r["real"] for r in cb["datasets"][n]["ap"]["rows"]) for n in DATASETS]
-    lshc = [cb["datasets"][n]["ap"]["lsh_ops"] for n in DATASETS]
-    groups = [(fly10, "random fly, $m=10d$ (best $k$)", PALETTE["blue_main"], None),
-              (lsh10, "LSH with its arithmetic", PALETTE["red_2"], None),
-              (conn, "connectome fly (best $k$)", PALETTE["blue_secondary"], "//"),
-              (lshc, "LSH with its arithmetic", PALETTE["red_1"], "//")]
-    for i, (vals, label, color, hatch) in enumerate(groups):
-        bars = a2.bar(x + (i - 1.5) * w, vals, w, color=color, edgecolor="black", lw=1.5,
-                      hatch=hatch, label=label)
-        _bar_text(a2, bars, vals, "{:.2f}", 0.01, fontsize=10)
-    a2.set_xticks(x)
-    a2.set_xticklabels([NAMES[n] for n in DATASETS])
+    w = 0.38
+    for ax, fly, lsh, flab, title, hatch in (
+            (a2, [max(rp["datasets"][n]["fly_10d"]["ap"]["mean"]) for n in DATASETS],
+             [rp["datasets"][n]["lsh_ops_10d"]["ap"]["mean"] for n in DATASETS],
+             "random fly, $m=10d$", "(b) random matrices", None),
+            (a3, [max(r["real"] for r in cb["datasets"][n]["ap"]["rows"]) for n in DATASETS],
+             [cb["datasets"][n]["ap"]["lsh_ops"] for n in DATASETS],
+             "connectome fly", "(c) MaleCNS connectome", "//")):
+        b1 = ax.bar(x - w / 2, fly, w, color=PALETTE["blue_main"] if hatch is None else PALETTE["blue_secondary"],
+                    edgecolor="black", lw=1.5, hatch=hatch, label=f"{flab} (best $k$)")
+        b2 = ax.bar(x + w / 2, lsh, w, color=PALETTE["red_2"], edgecolor="black", lw=1.5,
+                    label="LSH, same arithmetic")
+        _bar_text(ax, b1, fly, "{:.2f}", 0.015, fontsize=11)
+        _bar_text(ax, b2, lsh, "{:.2f}", 0.015, fontsize=11)
+        ax.set_xticks(x)
+        ax.set_xticklabels([NAMES[n] for n in DATASETS], fontsize=14)
+        ax.set_ylim(0, 1.15)
+        ax.legend(loc="upper left", fontsize=13)
+        ax.set_title(title, loc="left", fontsize=16)
     a2.set_ylabel("AP@200")
-    a2.set_ylim(0, 1.25)
-    a2.legend(loc="upper center", fontsize=11, ncol=2, bbox_to_anchor=(0.5, 1.02))
-    a2.set_title("(b) equal projection arithmetic", loc="left", fontsize=15)
     finalize(fig, "fig_budget")
 
 
@@ -233,7 +239,7 @@ def fig_connectomes(pr: dict, an: dict) -> None:
     against its own null under the 2017 protocol; (c) the odour analysis in
     every hemisphere."""
     apply_style(15, 2.0)
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.0), gridspec_kw={"width_ratios": [1, 1.45, 1.2]})
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5), gridspec_kw={"width_ratios": [1, 1.45, 1.2]})
     ax = axes[0]
     null, real = np.array(pr["null_scores"]), np.array(pr["real_scores"])
     rng = np.random.default_rng(0)
@@ -248,8 +254,8 @@ def fig_connectomes(pr: dict, an: dict) -> None:
     ax.set_xticks(range(len(pr["sizes"])))
     ax.set_xticklabels([f"{k}{'*' if k == pr['primary_k'] else ''}" for k in pr["sizes"]])
     ax.set_xlabel("hash length $k$ (* primary)")
-    ax.set_ylabel("AP relative to null (%)")
-    ax.set_title(f"(a) odours, MaleCNS R, {pr['B']} nulls", loc="left", fontsize=15)
+    ax.set_ylabel("AP@10 relative to null (%)")
+    ax.set_title(f"(a) odours, MaleCNS R", loc="left", fontsize=15)
 
     hs = list(an["hemispheres"].values())
     labels = [h["label"].replace("Hemibrain", "Hemibr.") for h in hs]
@@ -268,10 +274,9 @@ def fig_connectomes(pr: dict, an: dict) -> None:
     ax.axhline(0, color=PALETTE["grey"], lw=1.5)
     ax.set_xticks(range(len(hs)))
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=12)
-    ax.set_ylabel("AP relative to null (%)")
-    lo, hi = ax.get_ylim()
-    ax.set_ylim(lo, hi + 7)
-    ax.legend(loc="upper center", fontsize=11, ncol=5, handletextpad=0.2, columnspacing=0.8)
+    ax.set_ylabel("AP@200 relative to null (%)")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.33), fontsize=12, ncol=5,
+              handletextpad=0.2, columnspacing=0.8)
     ax.set_title("(b) 2017 protocol, 7 hemispheres", loc="left", fontsize=15)
 
     ax = axes[2]
@@ -290,64 +295,72 @@ def fig_connectomes(pr: dict, an: dict) -> None:
     ax.axhline(0, color=PALETTE["grey"], lw=1.5)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=12)
-    ax.set_ylabel("AP relative to null (%)")
-    ax.set_ylim(min(100 * r["relative_difference"] for r in own + mat) - 0.6, 1.4)
-    ax.legend(loc="upper right", fontsize=11, ncol=2)
-    ax.set_title("(c) odours, primary $k$ (* $p<0.05$)", loc="left", fontsize=15)
+    ax.set_ylabel("AP@10 relative to null (%)")
+    ax.set_ylim(min(100 * r["relative_difference"] for r in own + mat) - 0.9, 0.4)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.33), fontsize=12, ncol=2)
+    ax.text(0.98, 0.04, "* unadjusted $p<0.05$", transform=ax.transAxes, ha="right", fontsize=12)
+    ax.set_title("(c) odours, primary $k$", loc="left", fontsize=15)
     finalize(fig, "fig_connectomes")
 
 
 # ------------------------------------------------------------------ Fig. 5
 
-def fig_controls(cb: dict, an: dict) -> None:
-    """(a) equal-connection controls for MaleCNS R at the largest k, relative
-    to the null; (b) the even-degree control and the six-input construction
-    in every hemisphere (mean over the 2017-protocol runs)."""
-    apply_style(15, 2.0)
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 3.9), gridspec_kw={"width_ratios": [1.35, 1]})
+def fig_controls(ct: dict) -> None:
+    """Equal-connection degree controls with 95% bootstrap intervals over
+    trials (paired with each trial's null mean). (a) MaleCNS R at the largest
+    hash size per dataset; (b) every hemisphere, averaged over datasets and
+    hash sizes."""
+    from .report import pooled_control
+    apply_style(16, 2.0)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.3), gridspec_kw={"width_ratios": [1.1, 1.3]})
     series = [("real", "connectome", PALETTE["blue_main"], None),
               ("in_equal", "inputs per cell even", PALETTE["red_2"], None),
               ("out_equal", "fan-out even", PALETTE["green_3"], None),
               ("both_equal", "both even", PALETTE["green_2"], "//"),
               ("random_2017", "2017: six inputs", PALETTE["neutral"], "..")]
-    x = np.arange(len(DATASETS))
+    h = ct["hemispheres"]["malecns_R"]
+    names = [n for n in DATASETS if n in h]
+    x = np.arange(len(names))
     w = 0.16
     for i, (key, label, color, hatch) in enumerate(series):
-        vals = []
-        for n in DATASETS:
-            per = cb["datasets"][n]
-            r = next(rr for rr in per["ap"]["rows"] if rr["k"] == max(per["sizes"]))
-            vals.append(100 * (r[key] / r["null_mean"] - 1))
-        bars = a1.bar(x + (i - 2) * w, vals, w, color=color, edgecolor="black", lw=1.2, hatch=hatch,
-                      label=label)
-        _bar_text(a1, bars, vals, "{:+.0f}", 0.3, fontsize=9)
+        est, lo, hi = [], [], []
+        for n in names:
+            c = h[n]["contrasts"][key][-1]                     # largest hash size
+            est.append(c["estimate"])
+            lo.append(c["estimate"] - c["ci95"][0])
+            hi.append(c["ci95"][1] - c["estimate"])
+        a1.bar(x + (i - 2) * w, est, w, yerr=[lo, hi], color=color, edgecolor="black", lw=1.2,
+               hatch=hatch, label=label, error_kw=dict(lw=1.5, capsize=2.5))
     a1.axhline(0, color=PALETTE["grey"], lw=1.5)
     a1.set_xticks(x)
-    a1.set_xticklabels([f"{NAMES[n]}\n$k={max(cb['datasets'][n]['sizes'])}$" for n in DATASETS])
-    a1.set_ylabel("AP relative to null (%)")
-    top = max(b.get_height() for b in a1.patches)
-    a1.set_ylim(a1.get_ylim()[0], top * 1.75)
-    a1.legend(loc="upper left", fontsize=11, ncol=3, columnspacing=1.0)
-    a1.set_title("(a) same number of connections, MaleCNS R", loc="left", fontsize=15)
+    a1.set_xticklabels([f"{NAMES[n]}\n$k={h[n]['sizes'][-1]}$" for n in names], fontsize=14)
+    a1.set_ylabel("AP@200 relative to null (%)")
+    top = a1.get_ylim()[1]
+    a1.set_ylim(a1.get_ylim()[0], top * 1.55)
+    a1.legend(loc="upper left", fontsize=12, ncol=3, columnspacing=0.8, handletextpad=0.4)
+    a1.set_title("(a) MaleCNS R, largest $k$", loc="left", fontsize=16)
 
-    hs = list(an["hemispheres"].values())
-    labels = [h["label"].replace("Hemibrain", "Hemibr.") for h in hs]
-    rel = lambda h, key: 100 * np.mean([r[key] / r["null_mean"] - 1
-                                        for per in h["protocol"].values() for r in per["ap"]["rows"]])
+    hs = [(k, ct["hemispheres"][k]) for k in LABELS_SHORT
+          if k in ct["hemispheres"] and all(n in ct["hemispheres"][k] for n in DATASETS)]
+    labels = [LABELS_SHORT.get(k, k) for k, _ in hs]
     xs = np.arange(len(hs))
-    for off, key, color, hatch, label in ((-0.2, "both_equal", PALETTE["green_2"], "//", "both even"),
-                                          (0.2, "random_2017", PALETTE["neutral"], "..", "2017: six inputs")):
-        vals = [rel(h, key) for h in hs]
-        bars = a2.bar(xs + off, vals, 0.38, color=color, edgecolor="black", lw=1.2, hatch=hatch, label=label)
-        _bar_text(a2, bars, vals, "{:+.1f}", 0.1, fontsize=9)
+    w = 0.2
+    for i, (key, label, color, hatch) in enumerate(series[1:]):
+        vals = [pooled_control(v, key) for _, v in hs]
+        est = [p["estimate"] for p in vals]
+        err = [[p["estimate"] - p["ci95"][0] for p in vals], [p["ci95"][1] - p["estimate"] for p in vals]]
+        a2.bar(xs + (i - 1.5) * w, est, w, yerr=err, color=color, edgecolor="black", lw=1.2, hatch=hatch,
+               label=label, error_kw=dict(lw=1.5, capsize=2.5))
     a2.axhline(0, color=PALETTE["grey"], lw=1.5)
     a2.set_xticks(xs)
-    a2.set_xticklabels(labels, rotation=30, ha="right", fontsize=12)
-    a2.set_ylabel("mean AP relative to null (%)")
-    a2.legend(loc="upper left", fontsize=11, ncol=2)
-    a2.set_ylim(0, max(rel(h, k) for h in hs for k in ("both_equal", "random_2017")) * 1.35)
-    a2.set_title("(b) every hemisphere, 2017 protocol", loc="left", fontsize=15)
+    a2.set_xticklabels(labels, rotation=30, ha="right", fontsize=13)
+    a2.set_ylabel("mean AP@200 relative to null (%)")
+    a2.set_title("(b) every hemisphere, all datasets and $k$", loc="left", fontsize=16)
     finalize(fig, "fig_controls")
+
+
+LABELS_SHORT = {"malecns_R": "MaleCNS R", "malecns_L": "MaleCNS L", "hemibrain_R": "Hemibr. R",
+                "flywire_R": "FlyWire R", "flywire_L": "FlyWire L", "banc_R": "BANC R", "banc_L": "BANC L"}
 
 
 def build() -> list[str]:
@@ -366,7 +379,8 @@ def build() -> list[str]:
     if pr and an and an.get("hemispheres"):
         fig_connectomes(pr, an)
         done.append("fig_connectomes")
-    if cb and an and an.get("hemispheres"):
-        fig_controls(cb, an)
+    ct = _load("controls.json")
+    if ct and "malecns_R" in ct.get("hemispheres", {}):
+        fig_controls(ct)
         done.append("fig_controls")
     return done

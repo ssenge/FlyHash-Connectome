@@ -2,7 +2,7 @@
 
   primary       measured wiring against B curveball nulls on the baseline
                 benchmark: randomization tests, Holm adjustment, shift power,
-                two-stage bootstrap interval, pre-specified equivalence margin
+                two-stage bootstrap interval, equivalence margin (chosen in revision 2)
   architecture  fly hash against Gaussian sign codes at three budgets
   convergence   curveball mixing diagnostics and a pairing-structure test
   robustness    one-factor-at-a-time sensitivity grid
@@ -37,7 +37,7 @@ N_ITEMS = 4000
 SECONDARY_SIZES = (8, 16, 32, 64)
 SPARSITY = 0.05            # primary hash size: 5% of Kenyon cells, as in Dasgupta et al.
 MARGINS = (0.025, 0.05, 0.10)
-PRIMARY_MARGIN = 0.05      # pre-specified; see paper, Section III-F
+PRIMARY_MARGIN = 0.05      # fixed in revision 2, after first results; see the paper
 
 
 def primary_k(p: fh.Projection) -> int:
@@ -196,7 +196,7 @@ def primary(cfg: Config, B: int = 200, R: int = 200, B_sub: int = 20,
                                  "relative_to_null": v["mean"][i] / mu - 1}
                              for a, v in alt.items()},
         })
-    # The primary size is a single pre-specified test; only the secondary
+    # The primary size is a single designated test; only the secondary
     # sizes are adjusted, among themselves.
     sec = [r for r in rows if not r["primary"]]
     for r, a in zip(sec, stats.holm([r["randomization"]["p_two_sided"] for r in sec])):

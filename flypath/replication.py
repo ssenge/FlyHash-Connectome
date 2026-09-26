@@ -19,9 +19,11 @@ Not stated in the main text, and taken from the FlyLSH reference code
 (Sharma and Navlakha): each Kenyon cell samples 10% of the input dimensions,
 and the fly tag is the binary top-k pattern. The LSH hash is the vector of k
 projection values; the binary (sign) variant, their Fig. S3, is reported too.
-"Mean average precision" is taken in the standard IR sense (their ref. 19);
-the list-overlap score of the FlyLSH code is reported alongside. Of the two,
-the standard definition is the one close to their published values.
+The paper's "mean average precision" is undefined. We report AP@200 (all true
+neighbours in the denominator) and recall@200, the list-overlap score of the
+FlyLSH code, and precision averaged over retrieved neighbours only; the last
+reproduces the published LSH baseline but not the fly scores, and none of them
+reproduces the published absolute values.
 
 `replicate` runs that protocol, on their three datasets and on a fourth the
 2017 paper did not use: mixtures of DoOR odorant profiles, the input the
@@ -112,8 +114,18 @@ def fly_matrix(d: int, m: int, rng, sampled: int | None = None) -> np.ndarray:
     return w
 
 
-def winners(y: np.ndarray, k: int) -> sp.csr_matrix:
-    """Binary top-k tag per row, as a sparse matrix (ties: by partition order)."""
+def winners(y: np.ndarray, k: int, prio: np.ndarray | None = None) -> sp.csr_matrix:
+    """Binary top-k tag per row, as a sparse matrix.
+
+    Exact ties in drive (cells with identical inputs) are resolved by
+    `argpartition` order unless `prio`, a fixed random priority over cells,
+    is given; then a tied cell with higher priority wins. The jitter is far
+    below any non-tied gap in drive (checked).
+    """
+    if prio is not None:
+        gaps = np.diff(np.unique(y[: min(len(y), 200)]))
+        eps = 0.25 * gaps[gaps > 0].min() if (gaps > 0).any() else 1e-6
+        y = y + eps * prio[None, :]
     top = np.argpartition(-y, k - 1, axis=1)[:, :k]
     rows = np.repeat(np.arange(len(y)), k)
     return sp.csr_matrix((np.ones(rows.size, np.float32), (rows, top.ravel())), shape=y.shape)
@@ -306,13 +318,14 @@ def replicate(cfg: Config, trials: int = TRIALS, datasets=DATASETS, log=print) -
 
 
 def dimension_sweep(cfg: Config, dims=(8, 16, 32, 64, 128, 256, 512), trials: int = 10,
-                    ks=(4, 16), log=print) -> dict:
+                    ks=(4, 16), random_ties: bool = False, log=print) -> dict:
     """One distribution, varying input dimension: MNIST reduced by PCA to d
     components, ground truth on that reduced input, everything else as in
     `replicate`. Isolates d from dataset differences (it does not isolate it
     from the information PCA discards, which is common to all methods)."""
     x = load_benchmark(cfg, "mnist")
-    out = {"dims": list(dims), "ks": list(ks), "trials": trials, "rows": []}
+    out = {"dims": list(dims), "ks": list(ks), "trials": trials, "random_ties": random_ties,
+           "rows": []}
     for d in dims:
         z = pca(x, d)
         zc = centre(z)
@@ -327,10 +340,11 @@ def dimension_sweep(cfg: Config, dims=(8, 16, 32, 64, 128, 256, 512), trials: in
             q = rng.choice(n, N_QUERIES, replace=False)
             true = truth(z, q, top)
             y10 = z32 @ fly_matrix(d, 10 * d, rng)
+            prio = (lambda m: np.random.default_rng(t).random(m)) if random_ties else (lambda m: None)
             acc["lsh"].append([score_dense(zc @ rng.normal(size=(d, k)), q, true) for k in ks])
-            acc["fly_20k"].append([score_binary(winners(z32 @ fly_matrix(d, 20 * k, rng), k), q, true, rng)
-                                   for k in ks])
-            acc["fly_10d"].append([score_binary(winners(y10, k), q, true, rng) for k in ks])
+            acc["fly_20k"].append([score_binary(winners(z32 @ fly_matrix(d, 20 * k, rng), k, prio(20 * k)),
+                                                q, true, rng) for k in ks])
+            acc["fly_10d"].append([score_binary(winners(y10, k, prio(10 * d)), q, true, rng) for k in ks])
             acc["lsh_ops_10d"].append(score_dense(zc @ rng.normal(size=(d, ops_bits)), q, true))
         row = {"d": d, "sampled": s, "lsh_ops_10d_bits": ops_bits,
                **{key: _summ(v) for key, v in acc.items()}}
@@ -458,3 +472,120 @@ def score_wiring(name: str, x: np.ndarray, p: fh.Projection, pool, trials: int,
             "lsh_ops_matched_bits": ops_bits, "centred": centre_input,
             "input": "DoOR mixtures, measured glomeruli" if name == "odours"
             else "PCA, random component-glomerulus assignment per trial"}
+
+
+# ---------------------------------------------------------------- control uncertainty
+
+def trial_controls(name: str, x: np.ndarray, p: fh.Projection, pool, trials: int,
+                   log=print) -> dict:
+    """Trial-level scores of the connectome, its nulls and the degree controls
+    under the 2017 protocol (same trial seeds, queries and component
+    assignments as `score_wiring`), kept so that paired contrasts can be given
+    intervals. Per trial: AP@200 of the connectome, the mean over the nulls in
+    `pool`, and one fresh draw of each equal-connection control and of the
+    six-input construction."""
+    wiring = p.binary.astype(np.float32)
+    g, m = wiring.shape
+    nulls = [q.matrix.astype(np.float32) for q in pool]
+    sizes = tuple(sorted(set(HASH_LENGTHS) | {int(round(0.05 * m))}))
+    z = x if name == "odours" else pca(x, g)
+    n = len(z)
+    top = int(TOP * n)
+    pb = fh.Projection("b", p.binary, p.glomeruli)
+    keys = ("real", "null", *CONTROLS, "random_2017")
+    out = {k: [] for k in keys}
+    for t in range(trials):
+        rng = np.random.default_rng(5000 + t)
+        zp = z if name == "odours" else z[:, rng.permutation(g)]
+        z32 = centre(zp).astype(np.float32)
+        q = rng.choice(n, N_QUERIES, replace=False)
+        true = truth(zp, q, top)
+        tie_seed = int(rng.integers(2**31))
+        crng = np.random.default_rng(80_000 + t)
+
+        def fly(w):
+            y = z32 @ w
+            tie = np.random.default_rng(tie_seed)
+            return [average_precision(rank_binary(winners(y, k), q, top, tie), true) for k in sizes]
+        out["real"].append(fly(wiring))
+        out["null"].append(np.mean([fly(w) for w in nulls], axis=0).tolist())
+        for c, kw in CONTROLS.items():
+            out[c].append(fly(fh.margin_control(pb, seed=int(crng.integers(2**31)), **kw)
+                              .matrix.astype(np.float32)))
+        out["random_2017"].append(fly(fly_matrix(g, m, crng, sampled=6)))
+        if (t + 1) % 5 == 0:
+            log(f"  {name}: control trial {t + 1}/{trials}")
+    return {"sizes": list(sizes), "trials": trials, "B": len(pool), **out}
+
+
+def contrast(ctrl: np.ndarray, null: np.ndarray, draws: int = 2000, seed: int = 0) -> dict:
+    """Relative difference of aggregate means, 100 * (mean ctrl / mean null - 1),
+    with a 95% percentile bootstrap over trials (the independent units; queries
+    within a trial share their database and matrices and are not resampled).
+    Also the mean and SD of the per-trial ratios, a different estimand."""
+    ctrl, null = np.asarray(ctrl, float), np.asarray(null, float)
+    est = 100 * (ctrl.mean() / null.mean() - 1)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(ctrl), (draws, len(ctrl)))
+    boot = 100 * (ctrl[idx].mean(1) / null[idx].mean(1) - 1)
+    per = 100 * (ctrl / null - 1)
+    return {"estimate": float(est), "ci95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))],
+            "per_trial_mean": float(per.mean()), "per_trial_sd": float(per.std(ddof=1)),
+            "n_trials": int(len(ctrl))}
+
+
+def controls(cfg: Config, only: list[str] | None = None, B: int = 10, trials_primary: int = 20,
+             trials_other: int = 10, log=print) -> dict:
+    """Trial-level degree controls for every hemisphere (the MaleCNS right
+    hemisphere with more trials); results/controls.json, merged by hemisphere."""
+    import json
+    from . import connectomes as C
+    from .experiments import ROOT, null_pool, save
+    path = ROOT / "results" / "controls.json"
+    out = json.loads(path.read_text()) if path.exists() else {"hemispheres": {}}
+    out.update({"B": B, "estimand": "100 * (mean over trials of control AP / mean over trials "
+                                   "of null-mean AP - 1); 95% bootstrap over trials"})
+    data = {nm: load_benchmark(cfg, nm) for nm in ("sift", "glove", "mnist")}
+    for ds, side in C.HEMISPHERES:
+        key = f"{ds}_{side}"
+        if only and key not in only:
+            continue
+        p = C.projection(cfg, ds, side)
+        pb = fh.Projection("b", p.binary, p.glomeruli, meta=p.meta)
+        od = fh.load_odours(cfg, p.glomeruli)
+        po = fh.align(pb, od.glomeruli)
+        trials = trials_primary if key == "malecns_R" else trials_other
+        res = {}
+        for nm in DATASETS:
+            log(f"  {key}: {nm}")
+            if nm == "odours":
+                r = trial_controls(nm, load_benchmark(cfg, "odours", odours=od.x), po,
+                                   null_pool(po, 100)[:B], trials, log)
+            else:
+                r = trial_controls(nm, data[nm], pb, null_pool(pb, 100)[:B], trials, log)
+            null = np.array(r["null"])
+            r["contrasts"] = {c: [contrast(np.array(r[c])[:, i], null[:, i], seed=i)
+                                  for i in range(len(r["sizes"]))]
+                              for c in ("real", *CONTROLS, "random_2017")}
+            res[nm] = r
+        # re-read before saving so that parallel runs over different
+        # hemispheres do not overwrite each other
+        cur = json.loads(path.read_text()) if path.exists() else {"hemispheres": {}}
+        cur.update({k: v for k, v in out.items() if k != "hemispheres"})
+        cur["hemispheres"][key] = res
+        save(cur, "controls.json")
+        out = cur
+    return out
+
+
+def tie_sweep(cfg: Config, log=print) -> dict:
+    """The dimension sweep again with a seeded random tie priority among
+    Kenyon cells; stored next to the original in results/replication.json."""
+    import json
+    from .experiments import ROOT, save
+    res = dimension_sweep(cfg, random_ties=True, log=log)
+    path = ROOT / "results" / "replication.json"
+    rp = json.loads(path.read_text())
+    rp["dimension_sweep_random_ties"] = res
+    save(rp, "replication.json")
+    return res
