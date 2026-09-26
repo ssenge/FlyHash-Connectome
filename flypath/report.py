@@ -212,6 +212,15 @@ def latex(pr, ar, cv, rb, co) -> str:
     fo = _load("fanout.json")
     if fo:
         mac += fanout_macros(fo)
+    tk = _load("tasks.json")
+    if tk:
+        for task, name in (("mnist_novelty", "Nov"), ("mnist_flynn", "Knn"), ("odour_novelty", "OdNov")):
+            r = tk["tasks"][task]
+            for c, cn in (("real", "Conn"), ("out_equal", "Out"), ("in_equal", "In")):
+                d = r["difference"][c]
+                mac.append(_mac(f"Task{name}{cn}", f"{d['mean']:+.3f} [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}]"))
+            mac.append(_mac(f"Task{name}Null", f"{r['mean']['null']:.3f}"))
+        mac.append(_mac("TaskTrials", tk["trials"]))
     return "\n".join(mac) + "\n"
 
 

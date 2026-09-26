@@ -90,7 +90,7 @@ def fig_concept(an: dict) -> None:
     against the even fan-out at the same number of connections; (c) inputs
     per Kenyon cell against the six of the 2017 construction."""
     apply_style(15, 2.0)
-    fig = plt.figure(figsize=(12, 3.7))
+    fig = plt.figure(figsize=(12, 3.3))
     gs = fig.add_gridspec(1, 3, width_ratios=[1.35, 1.25, 1.0])
 
     ax = fig.add_subplot(gs[0])
@@ -171,7 +171,7 @@ def fig_replication(rp: dict) -> None:
     """The 2017 protocol with random matrices: AP@200 against k, per dataset."""
     apply_style(15, 2.0)
     ks = rp["protocol"]["hash_lengths"]
-    fig, axes = plt.subplots(1, 5, figsize=(12.5, 3.4), gridspec_kw={"width_ratios": [1, 1, 1, 1, 0.62]})
+    fig, axes = plt.subplots(1, 5, figsize=(12.5, 3.0), gridspec_kw={"width_ratios": [1, 1, 1, 1, 0.62]})
     series = [("lsh", "LSH, $k$ projections", PALETTE["red_strong"], "s"),
               ("random_20k", "random selection, $m=20k$", PALETTE["grey"], "v"),
               ("fly_20k", "fly hash, $m=20k$", PALETTE["green_3"], "^"),

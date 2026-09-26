@@ -47,5 +47,5 @@ def test_paper_uses_macros_not_literals():
     """The headline numbers must come from generated.tex."""
     tex = (ROOT / "paper" / "flyhash.tex").read_text()
     assert "\\input{generated.tex}" in tex
-    for macro in ("\\PrimaryPtwo", "\\BootLo", "\\BootHi", "\\AnimalRows", "\\ArchRows"):
+    for macro in ("\\PrimaryPtwo", "\\BootLo", "\\BootHi", "\\AnimalRows", "\\TaskNovConn"):
         assert macro in tex

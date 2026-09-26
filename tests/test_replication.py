@@ -68,3 +68,11 @@ def test_contrast_is_ratio_of_means_with_interval():
     c = r.contrast(np.array([1.1, 1.2, 1.0, 1.1]), np.array([1.0, 1.0, 1.0, 1.0]), draws=500)
     assert np.isclose(c["estimate"], 10.0)
     assert c["ci95"][0] <= c["estimate"] <= c["ci95"][1]
+
+
+def test_auc_and_fly_bloom():
+    assert r._auc(np.array([0.9, 0.8]), np.array([0.1, 0.2])) == 1.0
+    assert r._auc(np.array([0.1]), np.array([0.9])) == 0.0
+    T = np.array([[1, 1, 0, 0], [0, 0, 1, 1]])
+    np.testing.assert_array_equal(r.fly_bloom(T[:1], T), [0.0, 1.0])   # stored: not novel
+    np.testing.assert_allclose(r.fly_bloom(T[[0, 0, 1]], T), [1 / 3, 2 / 3])  # graded by frequency

@@ -133,7 +133,10 @@ completely in the larva \cite{eichler2017} and in the adult hemibrain
 \cite{li2020}, and found structured sampling in FAFB, where simulated odour
 discrimination was worse than with random wiring \cite{zheng2022}. None of
 these studies evaluated similarity search, the task behind the hashing
-interpretation.
+interpretation. Theory of expansion layers predicts that a small number of
+inputs per cell is optimal for the mushroom body and the cerebellum
+\cite{litwinkumar2017}; our controls instead vary how evenly inputs and
+outputs are distributed at a fixed total.
 
 
 \section{Methods}
@@ -261,21 +264,6 @@ on centred input, as the FlyLSH code does, leaves the MNIST ratio at
 $\ReplMnistRatioCentred\times$. GloVe is close to chance at small $k$ for every
 method.
 
-\begin{table}[t]
-\caption{Odour analysis, MaleCNS: AP@10 of the fly hash and of one-bit
-Gaussian codes (bits in parentheses).}
-\label{tab:arch}
-\centering
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{rcccc}
-\toprule
-$k$ & fly & sign, $k$ bits & storage-matched & operation-matched \\
-\midrule
-\ArchRows
-\bottomrule
-\end{tabular}
-\end{table}
 
 \subsection{Against real-valued LSH, the advantage is per active cell, not per operation}
 
@@ -312,7 +300,7 @@ input and $\ConnOdourOpsBits$ on odours; these beat it on \ConnOpsWins{} of
 
 
 One-bit codes are weaker than real-valued projections, and against them the
-comparison is closer (Table~\ref{tab:arch}): on odours the fly hash beats sign
+comparison is closer (odour analysis, AP@10; table in the supplement): on odours the fly hash beats sign
 codes of $k$ bits ($\ArchKbitsRatio\times$ at the primary size), trails at
 matched storage ($\ArchStorageRatio\times$), and at matched operations trails
 for small $k$ and leads from $k=32$ ($\ArchComputeRatio\times$).
@@ -434,6 +422,20 @@ by \NoCentSmallMin{} to \NoCentSmallMax{} at the smallest hash size and by at mo
 \NoCentLargeAbs{} at the largest, and changes the odour results strongly at small
 $k$, where drive on non-negative input then tracks the number of inputs
 (supplement).
+
+\subsection{Novelty detection and nearest-neighbour classification}
+
+The fly hash has also been proposed as a novelty detector, a Bloom filter whose
+Kenyon-cell output synapses are depressed by stored items \cite{dasgupta2018},
+and as a nearest-neighbour classifier with one such filter per class
+\cite{ram2022}. With the same matrices (MaleCNS right, graded filter,
+\TaskTrials{} trials, difference to each trial's null mean, $95\%$ interval),
+the connectome differs from its null by \TaskNovConn{} in MNIST novelty AUC
+(null \TaskNovNull; digits 0--4 stored, 5--9 novel), \TaskKnnConn{} in ten-class
+accuracy (null \TaskKnnNull) and \TaskOdNovConn{} in odour novelty AUC (null
+\TaskOdNovNull). Even fan-out gives \TaskNovOut, \TaskKnnOut{} and \TaskOdNovOut;
+even inputs \TaskNovIn, \TaskKnnIn{} and \TaskOdNovIn. The pairing again gives no
+advantage; fan-out balance helps classification but not novelty detection.
 
 \subsection{The skew is conserved across animals}
 
@@ -580,6 +582,10 @@ pp. 175--182, 2017.
 \bibitem{li2020} F. Li \textit{et al.}, ``The connectome of the adult
 \emph{Drosophila} mushroom body provides insights into function,''
 \emph{eLife}, vol. 9, e62576, 2020.
+
+\bibitem{ram2022} P. Ram and K. Sinha, ``Federated nearest neighbor classification with a colony of fruit-flies,'' in \emph{Proc. AAAI}, 2022.
+
+\bibitem{litwinkumar2017} A. Litwin-Kumar, K. D. Harris, R. Axel, H. Sompolinsky, and L. F. Abbott, ``Optimal degrees of synaptic connectivity,'' \emph{Neuron}, vol. 93, no. 5, pp. 1153--1164, 2017.
 
 \bibitem{sharma2018} J. Sharma and S. Navlakha, ``Improving similarity search
 with high-dimensional locality-sensitive hashing,'' arXiv:1812.01844, 2018.

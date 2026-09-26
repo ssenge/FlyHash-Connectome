@@ -589,3 +589,99 @@ def tie_sweep(cfg: Config, log=print) -> dict:
     rp["dimension_sweep_random_ties"] = res
     save(rp, "replication.json")
     return res
+
+
+# ---------------------------------------------------------------- other fly-hash tasks
+
+def _auc(novel: np.ndarray, familiar: np.ndarray) -> float:
+    """Probability that a novel query scores more novel than a familiar one."""
+    s = np.concatenate([novel, familiar])
+    r = np.argsort(np.argsort(s, kind="stable"), kind="stable") + 1.0
+    return float((r[:len(novel)].sum() - len(novel) * (len(novel) + 1) / 2) / (len(novel) * len(familiar)))
+
+
+def fly_bloom(tags_store: np.ndarray, tags_query: np.ndarray) -> np.ndarray:
+    """Novelty of each query under a graded fly Bloom filter (after Dasgupta
+    et al. 2018): each Kenyon cell's output synapse is depressed in proportion
+    to how often stored items activate it, w_j = 1 - count_j / n_stored; a
+    query's novelty is the mean synapse value over its active cells. The
+    binary form (w_j = 0 after one activation) saturates once n_stored * k
+    exceeds the number of cells, which is the regime tested here."""
+    w = 1.0 - tags_store.sum(0) / max(len(tags_store), 1)
+    return (tags_query * w).sum(1) / np.maximum(tags_query.sum(1), 1)
+
+
+def other_tasks(cfg: Config, trials: int = 10, B: int = 10, log=print) -> dict:
+    """Novelty detection (fly Bloom filter) and nearest-neighbour
+    classification (FlyNN: one Bloom filter per class, predict the least
+    novel class; Ram and Sinha) with the MaleCNS right connectome, its
+    degree-preserving nulls, the equal-connection controls and the 2017
+    construction. MNIST (PCA to one component per glomerulus, random
+    component-glomerulus assignment per trial): store digits 0-4, familiar =
+    held-out 0-4, novel = 5-9; classification on all ten digits. Odours
+    (measured glomeruli): store mixtures of half of the odorants, familiar =
+    new mixtures of that half, novel = mixtures of the other half. Results in
+    results/tasks.json as AUC / accuracy with 95% bootstrap intervals over
+    trials of the difference to each trial's null mean."""
+    from .experiments import context, null_pool, save
+    ctx = context(cfg)
+    d = cfg.raw_dir / "bench"
+    mn = np.load(d / "mnist.npz")
+    X, y = mn["x_train"].reshape(-1, 784).astype(float), mn["y_train"]
+    keys = ("real", "null", *CONTROLS, "random_2017")
+    out = {"trials": trials, "B": B, "tasks": {}}
+    for task in ("mnist_novelty", "mnist_flynn", "odour_novelty"):
+        p = ctx.proj if task.startswith("odour") else ctx.full
+        pb = fh.Projection("b", p.binary, p.glomeruli)
+        g, m = pb.matrix.shape
+        nulls = [q.matrix.astype(np.float32) for q in null_pool(p if task.startswith("odour") else pb, 100)[:B]]
+        acc = {k: [] for k in keys}
+        for t in range(trials):
+            rng = np.random.default_rng(6000 + t)
+            crng = np.random.default_rng(90_000 + t)
+            if task.startswith("mnist"):
+                idx = rng.choice(len(X), 6000, replace=False)
+                z = pca(X[idx], g)[:, rng.permutation(g)]
+                lab = y[idx]
+            else:
+                src = ctx.odours.x
+                half = rng.permutation(len(src))
+                a, b = src[half[: len(src) // 2]], src[half[len(src) // 2:]]
+                z = np.vstack([fh.mixtures(a, 3000, seed=t), fh.mixtures(a, 500, seed=100 + t),
+                               fh.mixtures(b, 500, seed=200 + t)])
+                lab = np.array([0] * 3500 + [1] * 500)
+            zc = centre(z).astype(np.float32)
+            k = int(round(0.05 * m))
+
+            def score(w):
+                T = winners(zc @ w, k).toarray()
+                if task == "mnist_novelty":
+                    tr, te = np.arange(4000), np.arange(4000, 6000)
+                    store = T[tr][lab[tr] < 5]
+                    nov = fly_bloom(store, T[te])
+                    return _auc(nov[lab[te] >= 5], nov[lab[te] < 5])
+                if task == "mnist_flynn":
+                    tr, te = np.arange(4000), np.arange(4000, 6000)
+                    s = np.stack([fly_bloom(T[tr][lab[tr] == c], T[te]) for c in range(10)], 1)
+                    return float((s.argmin(1) == lab[te]).mean())
+                nov = fly_bloom(T[:3000], T[3000:])
+                return _auc(nov[500:], nov[:500])
+            acc["real"].append(score(pb.matrix.astype(np.float32)))
+            acc["null"].append(float(np.mean([score(w) for w in nulls])))
+            for c, kw in CONTROLS.items():
+                acc[c].append(score(fh.margin_control(pb, seed=int(crng.integers(2**31)), **kw)
+                                    .matrix.astype(np.float32)))
+            acc["random_2017"].append(score(fly_matrix(g, m, crng, sampled=6)))
+        null = np.array(acc["null"])
+        res = {"k": k, "scores": acc, "mean": {c: float(np.mean(v)) for c, v in acc.items()},
+               "difference": {}}
+        rng = np.random.default_rng(1)
+        for c in ("real", *CONTROLS, "random_2017"):
+            dlt = np.array(acc[c]) - null
+            boot = dlt[rng.integers(0, trials, (2000, trials))].mean(1)
+            res["difference"][c] = {"mean": float(dlt.mean()),
+                                    "ci95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))]}
+        out["tasks"][task] = res
+        log(f"  {task}: " + "  ".join(f"{c} {res['mean'][c]:.3f}" for c in keys))
+        save(out, "tasks.json")
+    return out
