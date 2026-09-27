@@ -221,6 +221,14 @@ def latex(pr, ar, cv, rb, co) -> str:
                 mac.append(_mac(f"Task{name}{cn}", f"{d['mean']:+.3f} [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}]"))
             mac.append(_mac(f"Task{name}Null", f"{r['mean']['null']:.3f}"))
         mac.append(_mac("TaskTrials", tk["trials"]))
+        rows = []
+        for task, name in (("mnist_novelty", "Novelty, MNIST (AUC)"), ("mnist_flynn", "FlyNN, MNIST (accuracy)"),
+                           ("odour_novelty", "Novelty, odours (AUC)")):
+            r = tk["tasks"][task]
+            cell = lambda c: (lambda d: f"{d['mean']:+.3f}" + ("$^\\dagger$" if d["ci95"][0] > 0 or d["ci95"][1] < 0 else ""))(r["difference"][c])
+            rows.append(f"{name} & {r['mean']['null']:.3f} & " + " & ".join(cell(c) for c in
+                        ("real", "out_equal", "in_equal", "both_equal", "random_2017")) + " \\\\")
+        mac.append("\\newcommand{\\TaskRows}{" + "\n".join(rows) + "}")
     return "\n".join(mac) + "\n"
 
 

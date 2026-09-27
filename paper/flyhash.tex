@@ -267,6 +267,23 @@ method.
 
 \subsection{Against real-valued LSH, the advantage is per active cell, not per operation}
 
+\begin{table}[t]
+\caption{Odour analysis, MaleCNS: AP@10 of the fly hash and of one-bit
+Gaussian codes (bits in parentheses).}
+\label{tab:arch}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{rcccc}
+\toprule
+$k$ & fly & sign, $k$ bits & storage-matched & operation-matched \\
+\midrule
+\ArchRows
+\bottomrule
+\end{tabular}
+\end{table}
+
+
 \begin{figure*}[t]
 \centerline{\includegraphics[width=\textwidth]{fig_budget.pdf}}
 \caption{(a) One dataset at several input dimensions (MNIST reduced by PCA to
@@ -300,12 +317,45 @@ input and $\ConnOdourOpsBits$ on odours; these beat it on \ConnOpsWins{} of
 
 
 One-bit codes are weaker than real-valued projections, and against them the
-comparison is closer (odour analysis, AP@10; table in the supplement): on odours the fly hash beats sign
+comparison is closer (Table~\ref{tab:arch}): on odours the fly hash beats sign
 codes of $k$ bits ($\ArchKbitsRatio\times$ at the primary size), trails at
 matched storage ($\ArchStorageRatio\times$), and at matched operations trails
 for small $k$ and leads from $k=32$ ($\ArchComputeRatio\times$).
 
 \subsection{Connectomes behave like degree-preserving random matrices}
+
+\begin{table}[t]
+\caption{Odour analysis, MaleCNS: connectome against the null ($B=\NullB$) and
+comparison matrices (relative to the null mean, \%). $^\ast$primary.}
+\label{tab:wiring}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\begin{tabular}{rcccccccc}
+\toprule
+$k$ & conn. & null & $\Delta$\% & $p$ & $p_\text{Holm}$ & fan flat & 6 unif. & balanced \\
+\midrule
+\WiringRows
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Odour analysis, MaleCNS, primary size, one-factor variations ($B=\RobB$
+nulls each): relative difference (\%) and two-sided $p$.}
+\label{tab:rob}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcc}
+\toprule
+variation & $\Delta$\% & $p$ \\
+\midrule
+\RobRows
+\bottomrule
+\end{tabular}
+\end{table}
+
 
 \begin{figure*}[t]
 \centerline{\includegraphics[width=\textwidth]{fig_connectomes.pdf}}
@@ -356,14 +406,14 @@ negative in all \AnimN{} hemispheres, \AnimOdourMin{} to \AnimOdourMax{}, and
 \AnimMatchedMin{} to \AnimMatchedMax{} on the shared glomeruli. The sign is
 consistent, but only \AnimOdourNSig{} unadjusted $p$-values are below $0.05$, and
 after Holm adjustment across the seven hemispheres none is (smallest adjusted
-$p=\AnimOdourHolmMin$ on own and $\AnimMatchedHolmMin$ on shared glomeruli). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a; per-size table in the supplement) the connectome scores $\PrimaryReal$ against
+$p=\AnimOdourHolmMin$ on own and $\AnimMatchedHolmMin$ on shared glomeruli). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a, Table~\ref{tab:wiring}) the connectome scores $\PrimaryReal$ against
 $\PrimaryNullMean\pm\PrimaryNullSD$, \PrimaryRel{} (two-sided
 $p=\PrimaryPtwo$; $\PrimaryPHolmAll$ with all five sizes as one family); the
 bootstrap $90\%$ interval is \BootLo{} to \BootHi{}, which lies within the
 chosen $\pm\MarginPrimary$ margin but not within $\pm2.5\%$; in a simulation
 from one fitted generator, this interval covered the true value in \CovNew{}
 of \CovDatasets{} datasets, which calibrates it for that generator only, and the two-sided test has $80\%$ power at
-\MdeDown{} downward and \MdeUp{} upward. Across \RobN{} one-factor variations (supplement) the deficit ranges from
+\MdeDown{} downward and \MdeUp{} upward. Across \RobN{} one-factor variations (Table~\ref{tab:rob}) the deficit ranges from
 \RobRelMin{} to \RobRelMax{}, and it depends on the input: imputing unmeasured responses gives \ImputeRelMin{} to
 \ImputeRelMax{} ($p\ge\ImputePMin$), and all $46$ glomeruli with data give no
 difference.
@@ -425,6 +475,24 @@ $k$, where drive on non-negative input then tracks the number of inputs
 
 \subsection{Novelty detection and nearest-neighbour classification}
 
+\begin{table}[t]
+\caption{Novelty detection and nearest-neighbour classification (MaleCNS
+right, \TaskTrials{} trials): null mean, and difference to it for the
+connectome, the equal-connection controls and the six-input construction.
+$^\dagger$95\% interval excludes zero.}
+\label{tab:tasks}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lcccccc}
+\toprule
+task & null & conn. & fan-out even & inputs even & both & six \\
+\midrule
+\TaskRows
+\bottomrule
+\end{tabular}
+\end{table}
+
 The fly hash has also been proposed as a novelty detector, a Bloom filter whose
 Kenyon-cell output synapses are depressed by stored items \cite{dasgupta2018},
 and as a nearest-neighbour classifier with one such filter per class
@@ -434,7 +502,7 @@ the connectome differs from its null by \TaskNovConn{} in MNIST novelty AUC
 (null \TaskNovNull; digits 0--4 stored, 5--9 novel), \TaskKnnConn{} in ten-class
 accuracy (null \TaskKnnNull) and \TaskOdNovConn{} in odour novelty AUC (null
 \TaskOdNovNull). Even fan-out gives \TaskNovOut, \TaskKnnOut{} and \TaskOdNovOut;
-even inputs \TaskNovIn, \TaskKnnIn{} and \TaskOdNovIn. The pairing again gives no
+even inputs \TaskNovIn, \TaskKnnIn{} and \TaskOdNovIn{} (Table~\ref{tab:tasks}). The pairing again gives no
 advantage; fan-out balance helps classification but not novelty detection.
 
 \subsection{The skew is conserved across animals}
