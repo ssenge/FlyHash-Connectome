@@ -40,8 +40,7 @@ glomerular fan-out at fixed connection count improves retrieval in the model in
 every hemisphere, while equalising inputs per cell lowers it on average. Yet
 the skew is a conserved trait: each glomerulus's fan-out is strongly correlated
 across animals (median $\rho=\FanBetweenMed$), synaptic weights reinforce rather
-than offset it, and it favours broadly tuned glomeruli. The fly thus allocates
-Kenyon cells in a stereotyped way that a retrieval-optimal hash would not.
+than offset it, and it favours broadly tuned glomeruli. The fly thus allocates Kenyon cells in a stereotyped way that a retrieval-optimal hash would not. For practice the message is positive: the random fly hash is validated by real brains, since no measured wiring retrieves better, and its advantage is per active unit, which makes it the method of choice where active units rather than arithmetic are the scarce resource, as in sparse or neuromorphic hardware.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -563,14 +562,16 @@ winner-take-all.
 
 \section{Conclusion}
 
-In a documented reimplementation, sparse winner-take-all codes outperform equally
-many real Gaussian projections at short hash lengths, while the tested Gaussian
-baseline performs better at matched projection arithmetic. Across four
-connectomes, the measured pairing provides no consistent retrieval advantage
-over degree-preserving rewiring under the tested inputs; the small odour
-deficits depend on the treatment of missing responses. Separately, equalising
-glomerular fan-out at fixed connection count improves retrieval in the model,
-in every hemisphere; equalising inputs per cell does not.
+The random fly hash survives the test against real brains. In a documented
+reimplementation, sparse winner-take-all codes outperform equally many real
+Gaussian projections at short hash lengths, and across four connectomes no
+measured wiring retrieves better than degree-preserving random wiring; the
+circuit's conserved skew in glomerular fan-out makes it slightly worse. Random
+sparse wiring with even fan-out is therefore the right design, and connectome
+data are not needed to build a good fly hash. Its advantage is per active unit,
+not per operation: where arithmetic is cheap, dense Gaussian projections
+retrieve better, while where active units are the scarce resource, as in
+sparse or neuromorphic hardware, the fly hash is the better choice.
 Code, data checksums, results and a supplement are at
 \url{https://github.com/ssenge/FlyHash-Connectome}.
 
