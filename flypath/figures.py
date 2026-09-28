@@ -374,7 +374,8 @@ LABELS_SHORT = {"malecns_R": "MaleCNS R", "malecns_L": "MaleCNS L", "hemibrain_R
 
 def build() -> list[str]:
     pr, rp = _load("primary.json"), _load("replication.json")
-    cb, an = _load("connectome_benchmarks.json"), _load("connectomes.json")
+    from .report import revised_connectomes
+    cb, an = _load("connectome_benchmarks.json"), revised_connectomes()
     done = []
     if an and an.get("hemispheres", {}).get("malecns_R", {}).get("fan_out") and _load("fanout.json"):
         fig_concept(an)

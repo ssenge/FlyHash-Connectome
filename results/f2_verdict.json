@@ -1,0 +1,1099 @@
+{
+ "experiment": "F2 larger null ensembles: odour primary endpoint, every hemisphere",
+ "preregistration": "experiments/PREREGISTRATION_2026-09-28.md, section 14, F2",
+ "registered_text": "Odour primary endpoint for all 7 hemispheres with B = 2,000 curveball nulls (p floor 0.001), Holm across the 7. Replaces the B = 100 results in the paper whatever the outcome.",
+ "evaluator": "experiments/eval_f2.py",
+ "inputs": {
+  "f2_nulls.json_sha256": "5d767d912e800a03dc5487f0ec64f2aa885261268210258825a983704a992263",
+  "f2_audit.py_sha256": "49cebca9e4300427ddcd3a7fd10489a73d4ffe8afc839ed78acdc3fef7f1fe51",
+  "connectomes.json_sha256": "c05aebbcbe477ca74d9f24efbc63700d9a96a97277fd2f936abd8f42e2834c39",
+  "preregistration_sha256": "4e6bf970a86d0beb5b7cbf7817973b58a31685c47287d80b55aad3664f6ef0bc"
+ },
+ "primary": {
+  "run_completed_as_registered": true,
+  "definition": "point 12: registered design present in full (B = 2,000, all 7 hemispheres, primary size, Holm family of 7) and no integrity failure; F2 is a reporting item with no pass/fail outcome",
+  "integrity_checks": 374,
+  "integrity_failures": []
+ },
+ "registered_items": {
+  "odour_primary_endpoint_all_7": true,
+  "B_2000_curveball_nulls": true,
+  "p_floor": 0.0009995002498750624,
+  "holm_across_7": true,
+  "replaces_B100_results": "yes, whatever the outcome (see f2.paper_consequences)"
+ },
+ "design": {
+  "B": 2000,
+  "hemispheres": [
+   "malecns_R",
+   "malecns_L",
+   "hemibrain_R",
+   "flywire_R",
+   "flywire_L",
+   "banc_R",
+   "banc_L"
+  ],
+  "seed0": 10000,
+  "sweeps": 30,
+  "n_items": 4000,
+  "neighbours": 10,
+  "mixture_seed": 0,
+  "p_floor": 0.0009995002498750624,
+  "runner_compute_hours": 2.2935387278265424
+ },
+ "f2": {
+  "status": "evaluated",
+  "rule": "two-sided randomization p on 2,000 curveball nulls; Holm across the 7 hemispheres; significant iff Holm p < 0.05 (flypath/f2_audit.py points 5-6)",
+  "table": {
+   "malecns_R": {
+    "k": 92,
+    "real": 0.4062508630952381,
+    "null_mean": 0.4153418828521825,
+    "null_sd": 0.0037636014449900614,
+    "null_mean_se": 8.415668671214212e-05,
+    "z": -2.415510752087189,
+    "relative_difference": -0.021888040027448485,
+    "p_lower": 0.0074962518740629685,
+    "p_upper": 0.9930034982508745,
+    "p_two_sided": 0.014992503748125937,
+    "rank_from_top": 1987,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 14,
+    "n_null_ge_real": 1986,
+    "p_holm": 0.07496251874062969,
+    "significant_holm_lt_0.05": false,
+    "paper_B100": {
+     "relative_difference": -0.020967856741016644,
+     "null_mean": 0.41495150684523807,
+     "null_sd": 0.0036377372749296093,
+     "p_two_sided": 0.019801980198019802,
+     "p_holm": 0.13861386138613863,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      true,
+      true
+     ],
+     "holm_lt_0.05": [
+      false,
+      false
+     ]
+    }
+   },
+   "malecns_L": {
+    "k": 91,
+    "real": 0.41242802579365084,
+    "null_mean": 0.4161346874206349,
+    "null_sd": 0.0036352072539400085,
+    "null_mean_se": 8.128570532110198e-05,
+    "z": -1.0196562033613412,
+    "relative_difference": -0.008907360378822116,
+    "p_lower": 0.1469265367316342,
+    "p_upper": 0.8535732133933034,
+    "p_two_sided": 0.2938530734632684,
+    "rank_from_top": 1708,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 293,
+    "n_null_ge_real": 1707,
+    "p_holm": 0.5877061469265368,
+    "significant_holm_lt_0.05": false,
+    "paper_B100": {
+     "relative_difference": -0.01026180110097763,
+     "null_mean": 0.4167041610119048,
+     "null_sd": 0.0038674799558269125,
+     "p_two_sided": 0.25742574257425743,
+     "p_holm": 0.7722772277227723,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      false,
+      false
+     ],
+     "holm_lt_0.05": [
+      false,
+      false
+     ]
+    }
+   },
+   "hemibrain_R": {
+    "k": 86,
+    "real": 0.4157814682539682,
+    "null_mean": 0.4185455497867064,
+    "null_sd": 0.00392186289064843,
+    "null_mean_se": 8.769552021923713e-05,
+    "z": -0.7047879055968617,
+    "relative_difference": -0.006604016060251405,
+    "p_lower": 0.24537731134432783,
+    "p_upper": 0.7551224387806097,
+    "p_two_sided": 0.49075462268865566,
+    "rank_from_top": 1511,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 490,
+    "n_null_ge_real": 1510,
+    "p_holm": 0.5877061469265368,
+    "significant_holm_lt_0.05": false,
+    "paper_B100": {
+     "relative_difference": -0.006059502240172376,
+     "null_mean": 0.41831625654761906,
+     "null_sd": 0.0042559807708100065,
+     "p_two_sided": 0.5148514851485149,
+     "p_holm": 0.7722772277227723,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      false,
+      false
+     ],
+     "holm_lt_0.05": [
+      false,
+      false
+     ]
+    }
+   },
+   "flywire_R": {
+    "k": 118,
+    "real": 0.41880424603174604,
+    "null_mean": 0.43057879629464285,
+    "null_sd": 0.0032594522287768485,
+    "null_mean_se": 7.288356752958229e-05,
+    "z": -3.6124322237161186,
+    "relative_difference": -0.027345866457482382,
+    "p_lower": 0.0004997501249375312,
+    "p_upper": 1.0,
+    "p_two_sided": 0.0009995002498750624,
+    "rank_from_top": 2001,
+    "at_p_floor": true,
+    "direction": "below null",
+    "n_null_le_real": 0,
+    "n_null_ge_real": 2000,
+    "p_holm": 0.0069965017491254375,
+    "significant_holm_lt_0.05": true,
+    "paper_B100": {
+     "relative_difference": -0.02765244215051199,
+     "null_mean": 0.4307145553571429,
+     "null_sd": 0.003443606639373519,
+     "p_two_sided": 0.019801980198019802,
+     "p_holm": 0.13861386138613863,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      true,
+      true
+     ],
+     "holm_lt_0.05": [
+      false,
+      true
+     ]
+    }
+   },
+   "flywire_L": {
+    "k": 115,
+    "real": 0.41883364087301583,
+    "null_mean": 0.4257923534722222,
+    "null_sd": 0.0033253647512870997,
+    "null_mean_se": 7.435741633859636e-05,
+    "z": -2.0926163352495326,
+    "relative_difference": -0.01634297220807268,
+    "p_lower": 0.018490754622688656,
+    "p_upper": 0.9820089955022488,
+    "p_two_sided": 0.03698150924537731,
+    "rank_from_top": 1965,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 36,
+    "n_null_ge_real": 1964,
+    "p_holm": 0.14792603698150925,
+    "significant_holm_lt_0.05": false,
+    "paper_B100": {
+     "relative_difference": -0.016290426096358335,
+     "null_mean": 0.42576960922619045,
+     "null_sd": 0.003790415341694611,
+     "p_two_sided": 0.09900990099009901,
+     "p_holm": 0.39603960396039606,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      false,
+      true
+     ],
+     "holm_lt_0.05": [
+      false,
+      false
+     ]
+    }
+   },
+   "banc_R": {
+    "k": 98,
+    "real": 0.3950116071428571,
+    "null_mean": 0.40747159382440473,
+    "null_sd": 0.0037175772477177527,
+    "null_mean_se": 8.31275543750347e-05,
+    "z": -3.351641634130644,
+    "relative_difference": -0.03057878603168873,
+    "p_lower": 0.0014992503748125937,
+    "p_upper": 0.999000499750125,
+    "p_two_sided": 0.0029985007496251873,
+    "rank_from_top": 1999,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 2,
+    "n_null_ge_real": 1998,
+    "p_holm": 0.017991004497751123,
+    "significant_holm_lt_0.05": true,
+    "paper_B100": {
+     "relative_difference": -0.030394443850025654,
+     "null_mean": 0.40739412499999994,
+     "null_sd": 0.003483785259353805,
+     "p_two_sided": 0.019801980198019802,
+     "p_holm": 0.13861386138613863,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      true,
+      true
+     ],
+     "holm_lt_0.05": [
+      false,
+      true
+     ]
+    }
+   },
+   "banc_L": {
+    "k": 101,
+    "real": 0.4114524305555556,
+    "null_mean": 0.4168963363343254,
+    "null_sd": 0.003941717457458631,
+    "null_mean_se": 8.813948182975134e-05,
+    "z": -1.3810999488227353,
+    "relative_difference": -0.013058176108326602,
+    "p_lower": 0.08395802098950525,
+    "p_upper": 0.9165417291354323,
+    "p_two_sided": 0.1679160419790105,
+    "rank_from_top": 1834,
+    "at_p_floor": false,
+    "direction": "below null",
+    "n_null_le_real": 167,
+    "n_null_ge_real": 1833,
+    "p_holm": 0.5037481259370316,
+    "significant_holm_lt_0.05": false,
+    "paper_B100": {
+     "relative_difference": -0.012554040674929046,
+     "null_mean": 0.41668349206349214,
+     "null_sd": 0.004094944683753678,
+     "p_two_sided": 0.25742574257425743,
+     "p_holm": 0.7722772277227723,
+     "significant_holm_lt_0.05": false
+    },
+    "change": {
+     "raw_p_lt_0.05": [
+      false,
+      false
+     ],
+     "holm_lt_0.05": [
+      false,
+      false
+     ]
+    }
+   }
+  },
+  "summary": {
+   "n_significant_holm": 2,
+   "significant_holm": [
+    "flywire_R",
+    "banc_R"
+   ],
+   "n_raw_p_lt_0.05": 4,
+   "raw_p_lt_0.05": [
+    "malecns_R",
+    "flywire_R",
+    "flywire_L",
+    "banc_R"
+   ],
+   "n_at_p_floor": 1,
+   "at_p_floor": [
+    "flywire_R"
+   ],
+   "n_negative": 7,
+   "relative_difference_min": -0.03057878603168873,
+   "relative_difference_max": -0.006604016060251405,
+   "min_p_holm": 0.0069965017491254375,
+   "animal_mean_relative_difference": {
+    "malecns": -0.0153977002031353,
+    "hemibrain": -0.006604016060251405,
+    "flywire": -0.02184441933277753,
+    "banc": -0.021818481070007667
+   },
+   "n_animals_negative": 4,
+   "paper_B100": {
+    "n_significant_holm": 0,
+    "n_raw_p_lt_0.05": 3,
+    "min_p_holm": 0.13861386138613863
+   }
+  },
+  "paper_consequences": {
+   "note": "descriptive; F2 replaces the paper's B = 100 odour results whatever the outcome. Recomputed with flypath.report's pct/pval formatting; nothing is written to the paper.",
+   "macros": {
+    "AnimOdourPFloor": {
+     "paper_B100": "0.020",
+     "B2000": "0.001",
+     "changes": true
+    },
+    "AnimOdourMin": {
+     "paper_B100": "-3.0\\%",
+     "B2000": "-3.1\\%",
+     "changes": true
+    },
+    "AnimOdourMax": {
+     "paper_B100": "-0.6\\%",
+     "B2000": "-0.7\\%",
+     "changes": true
+    },
+    "AnimOdourNNeg": {
+     "paper_B100": 7,
+     "B2000": 7,
+     "changes": false
+    },
+    "AnimOdourNSig": {
+     "paper_B100": 3,
+     "B2000": 4,
+     "changes": true
+    },
+    "AnimOdourHolmMin": {
+     "paper_B100": "0.139",
+     "B2000": "0.007",
+     "changes": true
+    },
+    "AnimalsOdourNeg": {
+     "paper_B100": 4.0,
+     "B2000": 4,
+     "changes": 0.0
+    }
+   },
+   "table_animals_odours_cell": {
+    "malecns_R": {
+     "paper_B100": "-2.1 (0.020)",
+     "B2000": "-2.2 (0.015)"
+    },
+    "malecns_L": {
+     "paper_B100": "-1.0 (0.257)",
+     "B2000": "-0.9 (0.294)"
+    },
+    "hemibrain_R": {
+     "paper_B100": "-0.6 (0.515)",
+     "B2000": "-0.7 (0.491)"
+    },
+    "flywire_R": {
+     "paper_B100": "-2.8 (0.020)",
+     "B2000": "-2.7 (0.001)"
+    },
+    "flywire_L": {
+     "paper_B100": "-1.6 (0.099)",
+     "B2000": "-1.6 (0.037)"
+    },
+    "banc_R": {
+     "paper_B100": "-3.0 (0.020)",
+     "B2000": "-3.1 (0.003)"
+    },
+    "banc_L": {
+     "paper_B100": "-1.3 (0.257)",
+     "B2000": "-1.3 (0.168)"
+    }
+   },
+   "holm_sentence": {
+    "location": "paper/flyhash.tex, paragraph starting 'On odours'",
+    "text": "after Holm adjustment across the seven hemispheres none is (smallest adjusted $p=\\AnimOdourHolmMin$ on own and $\\AnimMatchedHolmMin$ on shared glomeruli)",
+    "holds_at_B2000": false,
+    "revise": true,
+    "significant_holm_B2000": [
+     "flywire_R",
+     "banc_R"
+    ]
+   },
+   "not_in_F2": "odours_matched (shared glomeruli; AnimMatchedMin/Max/NSig/HolmMin) is not part of F2 and stays at B = 100 (flypath/f2_audit.py point 4)"
+  },
+  "mc_uncertainty": {
+   "note": "descriptive; Clopper-Pearson 95% for the one-sided tail probability from the tail count, doubled; Holm with every p at its upper bound at once (conservative). Never changes the registered p of point 1.",
+   "hemispheres": {
+    "malecns_R": {
+     "tail_count": 14,
+     "p_two_sided": 0.014992503748125937,
+     "p_two_sided_95ci": [
+      0.007664187800747825,
+      0.02343389154106416
+     ],
+     "p_holm_all_at_upper_bound": 0.1171694577053208
+    },
+    "malecns_L": {
+     "tail_count": 293,
+     "p_two_sided": 0.2938530734632684,
+     "p_two_sided_95ci": [
+      0.2625590915593717,
+      0.3255290815989267
+     ],
+     "p_holm_all_at_upper_bound": 0.6510581631978534
+    },
+    "hemibrain_R": {
+     "tail_count": 490,
+     "p_two_sided": 0.49075462268865566,
+     "p_two_sided_95ci": [
+      0.4525715229688225,
+      0.5289292812223412
+     ],
+     "p_holm_all_at_upper_bound": 0.6510581631978534
+    },
+    "flywire_R": {
+     "tail_count": 0,
+     "p_two_sided": 0.0009995002498750624,
+     "p_two_sided_95ci": [
+      0.0,
+      0.0036854795868118727
+     ],
+     "p_holm_all_at_upper_bound": 0.02579835710768311
+    },
+    "flywire_L": {
+     "tail_count": 36,
+     "p_two_sided": 0.03698150924537731,
+     "p_two_sided_95ci": [
+      0.02527603616226273,
+      0.049666396322738955
+     ],
+     "p_holm_all_at_upper_bound": 0.19866558529095582
+    },
+    "banc_R": {
+     "tail_count": 2,
+     "p_two_sided": 0.0029985007496251873,
+     "p_two_sided_95ci": [
+      0.00024225518111365956,
+      0.007215257139657063
+     ],
+     "p_holm_all_at_upper_bound": 0.04329154283794238
+    },
+    "banc_L": {
+     "tail_count": 167,
+     "p_two_sided": 0.1679160419790105,
+     "p_two_sided_95ci": [
+      0.14348694897048567,
+      0.1929873998636587
+     ],
+     "p_holm_all_at_upper_bound": 0.5789621995909762
+    }
+   },
+   "significant_holm_at_upper_bounds": [
+    "flywire_R",
+    "banc_R"
+   ]
+  }
+ },
+ "verification": {
+  "rebuild_and_nulls": {
+   "malecns_R": {
+    "k": 92,
+    "shape": [
+     35,
+     1838
+    ],
+    "nnz": 7110,
+    "real_recomputed": 0.4062508630952381,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-6a9287de28029f2f.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 108,
+    "nearest_null_score": 0.4062086111111111,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4072572123015873,
+      "stored": 0.4072572123015873,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4086873313492064,
+      "stored": 0.4086873313492064,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4159370138888889,
+      "stored": 0.4159370138888889,
+      "score_equal": true
+     },
+     {
+      "b": 108,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.4062086111111111,
+      "stored": 0.4062086111111111,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4241276785714285,
+      "stored": 0.4241276785714285,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.40781660714285717,
+      "stored": 0.40781660714285717,
+      "score_equal": true
+     }
+    ]
+   },
+   "malecns_L": {
+    "k": 91,
+    "shape": [
+     35,
+     1820
+    ],
+    "nnz": 6959,
+    "real_recomputed": 0.41242802579365084,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-c753ca5f2d804cb9.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 173,
+    "nearest_null_score": 0.4124292757936508,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4220765873015873,
+      "stored": 0.4220765873015873,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4136981051587302,
+      "stored": 0.4136981051587302,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4192357341269841,
+      "stored": 0.4192357341269841,
+      "score_equal": true
+     },
+     {
+      "b": 173,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.4124292757936508,
+      "stored": 0.4124292757936508,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.40930824404761906,
+      "stored": 0.40930824404761906,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4164337202380952,
+      "stored": 0.4164337202380952,
+      "score_equal": true
+     }
+    ]
+   },
+   "hemibrain_R": {
+    "k": 86,
+    "shape": [
+     35,
+     1722
+    ],
+    "nnz": 7375,
+    "real_recomputed": 0.4157814682539682,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-b0fc0c0a9f887d78.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 850,
+    "nearest_null_score": 0.4157804662698412,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4263948015873016,
+      "stored": 0.4263948015873016,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.42495393849206353,
+      "stored": 0.42495393849206353,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.42089983134920633,
+      "stored": 0.42089983134920633,
+      "score_equal": true
+     },
+     {
+      "b": 850,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.4157804662698412,
+      "stored": 0.4157804662698412,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4183830357142857,
+      "stored": 0.4183830357142857,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.415037132936508,
+      "stored": 0.415037132936508,
+      "score_equal": true
+     }
+    ]
+   },
+   "flywire_R": {
+    "k": 118,
+    "shape": [
+     35,
+     2350
+    ],
+    "nnz": 8491,
+    "real_recomputed": 0.41880424603174604,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-e8ba5b0ee69c3eb1.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 1645,
+    "nearest_null_score": 0.4208927380952381,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.43829829365079365,
+      "stored": 0.43829829365079365,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4239658630952381,
+      "stored": 0.4239658630952381,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.42619707341269847,
+      "stored": 0.42619707341269847,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4322482440476191,
+      "stored": 0.4322482440476191,
+      "score_equal": true
+     },
+     {
+      "b": 1645,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.4208927380952381,
+      "stored": 0.4208927380952381,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.43289196428571425,
+      "stored": 0.43289196428571425,
+      "score_equal": true
+     }
+    ]
+   },
+   "flywire_L": {
+    "k": 115,
+    "shape": [
+     35,
+     2308
+    ],
+    "nnz": 8388,
+    "real_recomputed": 0.41883364087301583,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-367aa693d35e54a3.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 1422,
+    "nearest_null_score": 0.41883859126984124,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4240758928571428,
+      "stored": 0.4240758928571428,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4274976388888889,
+      "stored": 0.4274976388888889,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4258046329365079,
+      "stored": 0.4258046329365079,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.42450092261904765,
+      "stored": 0.42450092261904765,
+      "score_equal": true
+     },
+     {
+      "b": 1422,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.41883859126984124,
+      "stored": 0.41883859126984124,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.42518717261904765,
+      "stored": 0.42518717261904765,
+      "score_equal": true
+     }
+    ]
+   },
+   "banc_R": {
+    "k": 98,
+    "shape": [
+     34,
+     1969
+    ],
+    "nnz": 7252,
+    "real_recomputed": 0.3950116071428571,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-fb8e24cc26f5ada3.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 1634,
+    "nearest_null_score": 0.3949728571428571,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.40936603174603176,
+      "stored": 0.40936603174603176,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.403042628968254,
+      "stored": 0.403042628968254,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.40224855158730155,
+      "stored": 0.40224855158730155,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.40963607142857145,
+      "stored": 0.40963607142857145,
+      "score_equal": true
+     },
+     {
+      "b": 1634,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.3949728571428571,
+      "stored": 0.3949728571428571,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4042056051587301,
+      "stored": 0.4042056051587301,
+      "score_equal": true
+     }
+    ]
+   },
+   "banc_L": {
+    "k": 101,
+    "shape": [
+     35,
+     2019
+    ],
+    "nnz": 7423,
+    "real_recomputed": 0.4114524305555556,
+    "real_bitwise_equal": true,
+    "pool_cache": "data/cache/curveball-1043808bebe5fbeb.npz",
+    "n_matrices": 2000,
+    "margins_preserved": true,
+    "n_distinct": 2000,
+    "n_equal_to_real": 0,
+    "first_100_equal_B100_pool": true,
+    "nearest_null_b": 1134,
+    "nearest_null_score": 0.4114695734126984,
+    "spot_nulls": [
+     {
+      "b": 0,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.41676759920634915,
+      "stored": 0.41676759920634915,
+      "score_equal": true
+     },
+     {
+      "b": 99,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.418587371031746,
+      "stored": 0.418587371031746,
+      "score_equal": true
+     },
+     {
+      "b": 100,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.41347467261904763,
+      "stored": 0.41347467261904763,
+      "score_equal": true
+     },
+     {
+      "b": 1000,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.4152090873015873,
+      "stored": 0.4152090873015873,
+      "score_equal": true
+     },
+     {
+      "b": 1134,
+      "nearest_to_real": true,
+      "matrix_equal": true,
+      "score": 0.4114695734126984,
+      "stored": 0.4114695734126984,
+      "score_equal": true
+     },
+     {
+      "b": 1999,
+      "nearest_to_real": false,
+      "matrix_equal": true,
+      "score": 0.41555350198412705,
+      "stored": 0.41555350198412705,
+      "score_equal": true
+     }
+    ]
+   }
+  },
+  "paper_B100_reproduction": {
+   "source": "results/connectomes.json (B = 100)",
+   "hemispheres": {
+    "malecns_R": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "malecns_L": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "hemibrain_R": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "flywire_R": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "flywire_L": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "banc_R": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    },
+    "banc_L": {
+     "k_equal": true,
+     "real_equal": true,
+     "null_mean_equal": true,
+     "null_sd_equal": true,
+     "relative_difference_equal": true,
+     "p_two_sided_equal": true
+    }
+   },
+   "all_equal": true
+  },
+  "cross_evaluator": {
+   "evaluator": "experiments/eval_f1.py f2_evaluate",
+   "status": "evaluated",
+   "its_integrity_checks": 64,
+   "its_integrity_failures": [],
+   "agrees": {
+    "malecns_R": true,
+    "malecns_L": true,
+    "hemibrain_R": true,
+    "flywire_R": true,
+    "flywire_L": true,
+    "banc_R": true,
+    "banc_L": true
+   },
+   "all_agree": true
+  },
+  "spot_nulls_checked": 42,
+  "spot_nulls_all_equal": true
+ },
+ "f1": {
+  "file": "results/f1_verdict.json",
+  "evaluator": "experiments/eval_f1.py",
+  "sha256": "ff6124527950970f1861039ea0c0ad4a230cd323acab32d4f4be1f75006ea8e0",
+  "note": "F1 is descriptive and evaluated there, not here. That file's F2 block was written before results/f2_nulls.json existed and reads 'pending'; for F2 this file supersedes it.",
+  "run_completed_as_registered": true,
+  "hemibrain_departs_at_w2": true,
+  "revise_hemibrain_statement": true,
+  "per_threshold": {
+   "1": {
+    "n_departing": 6,
+    "n_holm_lt_0.05": 6,
+    "not_departing": [
+     "hemibrain_R"
+    ],
+    "z_min": 0.023341803332391945,
+    "z_max": 17.768772334952658
+   },
+   "2": {
+    "n_departing": 7,
+    "n_holm_lt_0.05": 7,
+    "not_departing": [],
+    "z_min": 2.924986437943708,
+    "z_max": 20.421603053034847
+   },
+   "3": {
+    "n_departing": 7,
+    "n_holm_lt_0.05": 7,
+    "not_departing": [],
+    "z_min": 3.1645857259964187,
+    "z_max": 18.57500590699716
+   },
+   "5": {
+    "n_departing": 7,
+    "n_holm_lt_0.05": 7,
+    "not_departing": [],
+    "z_min": 3.7751885482634933,
+    "z_max": 15.672459722995965
+   }
+  },
+  "its_f2_status": "pending"
+ },
+ "seconds": 38.62692928314209
+}

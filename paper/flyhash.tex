@@ -237,8 +237,11 @@ after first results had been seen; this is not a preregistration. MaleCNS is
 tested against \NullB{} nulls with a two-stage bootstrap (resampled odorants,
 regenerated mixtures, $20$ nulls drawn from the same pool per replicate,
 $\BootR$ replicates) and a $\pm\MarginPrimary$ equivalence margin; every
-hemisphere is tested against \AnimB{} nulls on its own and on the
-$\AnimCommonOdour$ shared DoOR glomeruli.
+hemisphere is tested against \AnimBOdour{} nulls on its own DoOR glomeruli and
+against \AnimB{} on the $\AnimCommonOdour$ shared ones. Null ensembles of this
+size, and the audit of weak connections below, were pre-registered
+(\texttt{experiments/PREREGISTRATION\_2026-09-28.md}) after an earlier
+version of this analysis had used $100$ nulls.
 
 \section{Results}
 
@@ -370,8 +373,9 @@ $\AnimCommonOdour$ all share.}
 \begin{table*}[t]
 \caption{Seven hemispheres of four animals: Kenyon cells, mean inputs per
 cell, fan-out coefficient of variation, co-occurrence $Q$ as $z$ against
-$\AnimB$ nulls; odour analysis at the primary size on own and on shared
-glomeruli (relative difference \%, unadjusted $p$, floor $\AnimOdourPFloor$);
+$\AnimBQ$ nulls; odour analysis at the primary size on own glomeruli
+($\AnimBOdour$ nulls, floor $\AnimOdourPFloor$) and on shared glomeruli
+($\AnimB$ nulls) (relative difference \%, unadjusted $p$);
 median over the 2017-protocol runs ($4$ datasets $\times$ $6$ sizes, $B=\AnimBBench$,
 \AnimTrials{} trials); fly hash over LSH on MNIST at $k=4$.}
 \label{tab:animals}
@@ -403,9 +407,10 @@ individual or reconstruction differences.
 On odours (Fig.~\ref{fig:conn}c) the difference at the primary size is
 negative in all \AnimN{} hemispheres, \AnimOdourMin{} to \AnimOdourMax{}, and
 \AnimMatchedMin{} to \AnimMatchedMax{} on the shared glomeruli. The sign is
-consistent, but only \AnimOdourNSig{} unadjusted $p$-values are below $0.05$, and
-after Holm adjustment across the seven hemispheres none is (smallest adjusted
-$p=\AnimOdourHolmMin$ on own and $\AnimMatchedHolmMin$ on shared glomeruli). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a, Table~\ref{tab:wiring}) the connectome scores $\PrimaryReal$ against
+consistent: \AnimOdourNSig{} unadjusted $p$-values are below $0.05$, and after Holm
+adjustment across the seven hemispheres \AnimOdourHolmN{} remain, \AnimOdourHolmNames{}
+(smallest adjusted $p=\AnimOdourHolmMin$; on the shared glomeruli, with the
+smaller ensemble, the smallest is $\AnimMatchedHolmMin$). In the full MaleCNS analysis (Fig.~\ref{fig:conn}a, Table~\ref{tab:wiring}) the connectome scores $\PrimaryReal$ against
 $\PrimaryNullMean\pm\PrimaryNullSD$, \PrimaryRel{} (two-sided
 $p=\PrimaryPtwo$; $\PrimaryPHolmAll$ with all five sizes as one family); the
 bootstrap $90\%$ interval is \BootLo{} to \BootHi{}, which lies within the
@@ -420,10 +425,13 @@ difference.
 
 
 By $Q$ the pairing departs from its null in \AnimQNSig{} of \AnimN{} hemispheres
-($Q$ $z$ from \AnimQzMin{} to \AnimQzMax{}; raw $p=\AnimQRaw$ each, Holm-adjusted
-over seven $\AnimQHolm$), consistent with
-\cite{zheng2022}; the hemibrain is the exception, indistinguishable from its
-null by $Q$. Under these protocols the observed structure did not coincide with
+($Q$ $z$ from \AnimQzMin{} to \AnimQzMax{}; \AnimQNSigHolm{} after Holm adjustment
+over seven, adjusted $p\le\AnimQHolmMax$), consistent with \cite{zheng2022}.
+The hemibrain is indistinguishable from its null when every connection is
+counted, but not once single-synapse connections are removed: at two or more
+synapses per glomerulus--cell pair its $Q$ is above the null
+($z=\HemiQzTwo$, $p=\HemiQpTwo$), as it is in all \QDepartTwo{} hemispheres. Its
+apparent exception is a property of its weakest connections. Under these protocols the observed structure did not coincide with
 a consistent retrieval advantage; seven hemispheres do not allow a general
 statement about structure and retrieval.
 

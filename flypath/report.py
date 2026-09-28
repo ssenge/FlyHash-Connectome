@@ -21,6 +21,41 @@ from .config import ROOT
 RES = ROOT / "results"
 
 
+def revised_connectomes() -> dict | None:
+    """connectomes.json with the pre-registered revisions applied
+    (experiments/PREREGISTRATION_2026-09-28.md): the pairing-structure test
+    from F1 (results/f1_audit.json, all connections, B = 1000 nulls) and the
+    odour primary endpoint from F2 (results/f2_nulls.json, B = 2000 nulls).
+    Shared-glomerulus odour rows and the 2017-protocol runs keep their
+    original null ensembles."""
+    an = _load("connectomes.json")
+    if not an:
+        return an
+    f1, f2 = _load("f1_audit.json"), _load("f2_nulls.json")
+    an["B_q"], an["B_odour"] = an["B"], an["B"]
+    if f1:
+        an["B_q"] = f1["B"]
+        an["q_thresholds"] = {}
+        for key, h in an["hemispheres"].items():
+            t = f1["hemispheres"][key]["thresholds"]
+            w1 = t["1"]
+            h["structure"] = {"q_real": w1["q_real"], "q_null_mean": w1["q_null_mean"],
+                              "q_null_sd": w1["q_null_sd"], "z": w1["z"],
+                              "test": {"p_upper": w1["p_upper"], "p_lower": w1["p_lower"],
+                                       "p_two_sided": w1["p_two_sided"]}}
+            an["q_thresholds"][key] = {w: {"z": v["z"], "p_upper": v["p_upper"]} for w, v in t.items()}
+    if f2:
+        an["B_odour"] = f2["B"]
+        for key, h in an["hemispheres"].items():
+            r2 = f2["hemispheres"][key]
+            prim = next(r for r in h["odours"] if r["primary"])
+            assert prim["k"] == r2["k"]
+            prim.update({"real": r2["real"], "null_mean": r2["null_mean"], "null_sd": r2["null_sd"],
+                         "relative_difference": r2["relative_difference"],
+                         "p_two_sided": r2["p_two_sided"], "B": r2["B"]})
+    return an
+
+
 def _load(name: str) -> dict | None:
     f = RES / name
     return json.loads(f.read_text()) if f.exists() else None
@@ -203,7 +238,7 @@ def latex(pr, ar, cv, rb, co) -> str:
             rt.append(f"{label} & {rel} & {p} \\\\")
         mac.append("\\newcommand{\\RobRows}{" + "\n".join(rt) + "}")
     mac += _benchmark_macros(_load("replication.json"), _load("connectome_benchmarks.json"))
-    an = _load("connectomes.json")
+    an = revised_connectomes()
     if an and an.get("hemispheres"):
         mac += animal_macros(an)
     ct = _load("controls.json")
@@ -495,16 +530,28 @@ def animal_macros(an: dict) -> list[str]:
     pfloor = 2 / (an["B_bench"] + 1)
     from .stats import holm
     h_own = holm([r["p_two_sided"] for r in odour])
+    n_own_holm = sum(v < 0.05 for v in h_own)
+    holm_names = [h["label"] for h, v in zip(hs.values(), h_own) if v < 0.05]
+    qt = an.get("q_thresholds", {})
+    hb = qt.get("hemibrain_R", {})
     h_mat = holm([r["p_two_sided"] for r in matched])
     h_q = holm([h["structure"]["test"]["p_upper"] for h in hs.values()])
     return ["\\newcommand{\\AnimalRows}{" + "\n".join(rows) + "}",
             _mac("AnimOdourHolmMin", pval(min(h_own))), _mac("AnimMatchedHolmMin", pval(min(h_mat))),
             _mac("AnimQHolm", pval(min(h_q))),
             _mac("AnimQRaw", pval(min(h["structure"]["test"]["p_upper"] for h in hs.values()))),
+            _mac("AnimOdourHolmN", n_own_holm),
+            _mac("AnimOdourHolmNames", " and ".join(holm_names) if holm_names else "none"),
+            _mac("AnimQHolmMax", pval(max(v for v in h_q if v < 0.05)) if any(v < 0.05 for v in h_q) else "n/a"),
+            _mac("HemiQzTwo", f"{hb['2']['z']:+.1f}" if hb else "n/a"),
+            _mac("HemiQpTwo", pval(hb["2"]["p_upper"]) if hb else "n/a"),
+            _mac("QDepartTwo", sum(v["2"]["p_upper"] < 0.05 for v in qt.values()) if qt else "n/a"),
             _mac("AnimN", len(hs)), _mac("AnimAnimals", len(animals)),
             _mac("AnimB", an["B"]), _mac("AnimBBench", an["B_bench"]),
+            _mac("AnimBQ", an.get("B_q", an["B"])), _mac("AnimBOdour", an.get("B_odour", an["B"])),
             _mac("AnimTrials", an["trials"]), _mac("AnimPFloor", pval(pfloor)),
-            _mac("AnimOdourPFloor", pval(2 / (an["B"] + 1))),
+            _mac("AnimOdourPFloor", pval(2 / (an.get("B_odour", an["B"]) + 1))),
+            _mac("AnimQNSigHolm", sum(v < 0.05 for v in h_q)),
             _mac("AnimCommon", len(an["common_glomeruli"])),
             _mac("AnimCommonOdour", len(an["common_odour_glomeruli"])),
             _mac("AnimRelMin", f"{pct(min(r['relative_difference'] for r in allproto), 1)}\\%"),
@@ -777,7 +824,7 @@ def supplement(pr, ar, cv, rb, co) -> str:
               f"per Gaussian projection, one addition per non-zero of M). "
               f"Ratios are fly / Gaussian.", ""]
     L += _benchmark_supplement(_load("replication.json"), _load("connectome_benchmarks.json"))
-    an = _load("connectomes.json")
+    an = revised_connectomes()
     if an and an.get("hemispheres"):
         L += animal_supplement(an)
     return "\n".join(L)
