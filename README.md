@@ -8,13 +8,15 @@ wiring was unknown. This repository replaces it with the glomerulus-to-Kenyon-
 cell connectivity of four connectomes (MaleCNS, hemibrain, FlyWire, BANC: four
 animals, seven hemispheres) and asks whether retrieval changes.
 
-In short, the random fly hash is validated by real brains: no measured wiring
-retrieves better than random wiring, so a good fly hash needs no connectome data,
-and its advantage lies in using few active units rather than little arithmetic.
+In short: in the tested connectomes, measured wiring gives no consistent
+retrieval advantage over degree-preserving random wiring, so a fly hash needs
+no connectome data; and its advantage over LSH lies in using few active units,
+not little arithmetic.
 
-- **The 2017 pattern holds in a reimplementation.** On SIFT, GloVe and MNIST
-  (and odour mixtures), the fly hash beats k Gaussian projections at short hash
-  lengths (3.1x in AP@200 on MNIST at k = 4), and the lead shrinks with k.
+- **The 2017 pattern holds in a reimplementation.** On SIFT, MNIST and odour
+  mixtures (GloVe is near chance at short codes for every method), the fly hash
+  beats k Gaussian projections at short hash lengths (3.1x in AP@200 on MNIST
+  at k = 4), and the lead shrinks with k.
   The published absolute values are not reproduced: the paper's score is
   undefined, and two protocol details come from later code.
 - **The measured pairing gives no consistent advantage.** Across four

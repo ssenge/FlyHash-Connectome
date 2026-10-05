@@ -257,7 +257,7 @@ def latex(pr, ar, cv, rb, co) -> str:
             mac.append(_mac(f"Task{name}Null", f"{r['mean']['null']:.3f}"))
         mac.append(_mac("TaskTrials", tk["trials"]))
         rows = []
-        for task, name in (("mnist_novelty", "Novelty, MNIST (AUC)"), ("mnist_flynn", "FlyNN, MNIST (accuracy)"),
+        for task, name in (("mnist_novelty", "Novelty, MNIST (AUC)"), ("mnist_flynn", "FlyNN-style, MNIST (accuracy)"),
                            ("odour_novelty", "Novelty, odours (AUC)")):
             r = tk["tasks"][task]
             cell = lambda c: (lambda d: f"{d['mean']:+.3f}" + ("$^\\dagger$" if d["ci95"][0] > 0 or d["ci95"][1] < 0 else ""))(r["difference"][c])
@@ -735,7 +735,9 @@ def fanout_macros(fo: dict) -> list[str]:
             _mac("FanBreadthPos", sum(v > 0 for v in br)),
             _mac("FanBreadthMin", f"{min(br):+.2f}"), _mac("FanBreadthMax", f"{max(br):+.2f}"),
             _mac("FanSdMin", f"{min(sd):+.2f}"), _mac("FanSdMax", f"{max(sd):+.2f}"),
-            _mac("FanSdSig", sum(v["sd"]["p"] < 0.05 for v in fo["odours"].values()))]
+            _mac("FanSdSig", sum(v["sd"]["p"] < 0.05 for v in fo["odours"].values())),
+            _mac("FanBreadthSig", sum(v["breadth"]["p"] < 0.05 for v in fo["odours"].values())),
+            _mac("FanBreadthPmin", pval(min(v["breadth"]["p"] for v in fo["odours"].values())))]
 
 
 def supplement(pr, ar, cv, rb, co) -> str:

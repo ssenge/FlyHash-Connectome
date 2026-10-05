@@ -18,3 +18,12 @@ def test_build_sums_per_glomerulus_and_drops_uninnervated_cells():
     np.testing.assert_array_equal(p.meta["pn_partners"], [2, 1, 1])
     q = C.fh.align(p, ["VM2"])                          # partners follow the restriction
     np.testing.assert_array_equal(q.meta["pn_partners"], [1])
+
+
+def test_response_breadth_excludes_unmeasured_odorants():
+    x = np.array([[0.5, 0.0], [np.nan, 0.5], [np.nan, 0.0], [0.1, 0.5]])
+    observed = ~np.isnan(x)
+    # glomerulus 0: measured 0.5, 0.1 -> 1 of 2; glomerulus 1: 0, .5, 0, .5 -> 2 of 4
+    np.testing.assert_allclose(C.response_breadth(np.nan_to_num(x), observed), [0.5, 0.5])
+    # the unmasked comparison would count the two unmeasured entries as non-responses (1/4)
+    assert np.nanmean(np.where(observed, x, np.nan) > 0.2, 0)[0] == 0.25

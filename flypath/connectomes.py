@@ -283,6 +283,13 @@ def add_degrees(cfg: Config) -> None:
     ex.save(out, "connectomes.json")
 
 
+def response_breadth(x: np.ndarray, observed: np.ndarray, threshold: float = 0.2) -> np.ndarray:
+    """Per glomerulus, the fraction of MEASURED odorants with response above
+    `threshold`; unmeasured entries are excluded from the denominator. (A
+    comparison `x > threshold` on NaN is False, so masking is required.)"""
+    return np.nanmean(np.where(observed, x > threshold, np.nan), 0)
+
+
 def fanout_analysis(cfg: Config) -> dict:
     """Is the skew in glomerular fan-out a conserved trait, and what does it
     track? Writes results/fanout.json:
@@ -294,8 +301,9 @@ def fanout_analysis(cfg: Config) -> dict:
                     mean synapses per connection (positive: weights reinforce
                     the skew; negative: they compensate)
       odours        per hemisphere, Spearman correlation between fan-out and
-                    DoOR response breadth (fraction of measured odorants with
-                    response > 0.2) and response SD, over the DoOR glomeruli.
+                    DoOR response breadth (fraction of MEASURED odorants with
+                    response > 0.2; unmeasured entries excluded) and response
+                    SD, over the DoOR glomeruli.
                     All hemispheres use the same DoOR data and conserved
                     fan-out, so these are not independent tests.
     """
@@ -317,7 +325,10 @@ def fanout_analysis(cfg: Config) -> dict:
         x = np.where(od.observed, od.x, np.nan)
         f = np.array([fan[p.glomeruli.index(g)] for g in od.glomeruli])
         res = {}
-        for name, v in (("breadth", np.nanmean(x > 0.2, 0)), ("sd", np.nanstd(x, 0))):
+        # breadth over MEASURED odorants only (nan > 0.2 is False, so the
+        # comparison must be masked; this was wrong in revision 6)
+        breadth = response_breadth(od.x, od.observed)
+        for name, v in (("breadth", breadth), ("sd", np.nanstd(x, 0))):
             r = spearmanr(f, v)
             res[name] = {"rho": float(r.correlation), "p": float(r.pvalue)}
         out["odours"][k] = res

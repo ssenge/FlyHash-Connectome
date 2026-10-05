@@ -26,9 +26,7 @@ olfactory circuit, modelled as a random sparse projection followed by
 winner-take-all, is a locality-sensitive hash that beats classical LSH. The
 projection was random because the wiring was unknown. We test it against four
 electron-microscopy connectomes (MaleCNS, hemibrain, FlyWire, BANC; four
-animals, seven hemispheres) and report three findings. First, the 2017 pattern
-holds in a reimplementation of its protocol on SIFT, GloVe, MNIST and odour
-mixtures: the fly hash beats $k$ Gaussian projections at short hash lengths
+animals, seven hemispheres) and report three findings. First, the 2017 pattern holds in a reimplementation of its protocol on SIFT, MNIST and odour mixtures (GloVe is near chance at short codes for every method): the fly hash beats $k$ Gaussian projections at short hash lengths
 ($\ReplMnistRatio\times$ in AP@200 on MNIST at $k=4$). Second, against the tested real-valued Gaussian baseline that advantage is per
 active cell, not per operation: Gaussian projections given the same projection
 arithmetic retrieve better on every dataset and at every input dimension
@@ -37,10 +35,7 @@ no consistent retrieval advantage over degree-preserving rewiring: retrieval
 is slightly lower (median \AnimRelMedian{}), and the small odour deficits
 depend on how missing odour responses are treated. Separately, equalising
 glomerular fan-out at fixed connection count improves retrieval in the model in
-every hemisphere, while equalising inputs per cell lowers it on average. Yet
-the skew is a conserved trait: each glomerulus's fan-out is strongly correlated
-across animals (median $\rho=\FanBetweenMed$), synaptic weights reinforce rather
-than offset it, and it favours broadly tuned glomeruli. The fly thus allocates Kenyon cells in a stereotyped way that a retrieval-optimal hash would not. For practice the message is positive: the random fly hash is validated by real brains, since no measured wiring retrieves better, and its advantage is per active unit, which makes it the method of choice where active units rather than arithmetic are the scarce resource, as in sparse or neuromorphic hardware.
+every hemisphere, while equalising inputs per cell lowers it on average. Yet the fan-out profile is similar across the four sampled animals (median between-animal $\rho=\FanBetweenMed$), synaptic weights do not offset it, and its relation to odour tuning is weak. In the sampled animals the circuit thus allocates Kenyon cells unevenly in a similar way, and in the model that unevenness costs retrieval. For practice: in the tested connectomes, measured wiring gives no consistent retrieval advantage over degree-preserving random wiring, so a fly hash needs no connectome data, and its advantage is per active unit, which may suit hardware where active units rather than arithmetic are the binding cost, a hypothesis we do not test.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -72,18 +67,14 @@ the fly hash's advantage is per active cell and not per operation;
 hemispheres, on the 2017 benchmarks and on measured odour responses, against
 degree-preserving rewiring and against controls that change one degree
 sequence at a time at equal connection count;
-\item evidence that the fan-out skew that costs retrieval in the model is a
-conserved trait of the circuit across four animals, reinforced by synaptic
-weights and related to odour tuning breadth.
+\item the observation that the fan-out skew that costs retrieval in the model is similar across the four sampled animals, is not offset by synaptic weights, and is only weakly related to odour tuning.
 \end{itemize}
 
 \begin{figure*}[t]
 \centerline{\includegraphics[width=\textwidth]{fig_concept.pdf}}
 \caption{(a) The fly hash: glomerular input $x$ is expanded through a binary
 projection $M$ onto Kenyon cells and the $k$ most active cells form the tag.
-(b) Glomeruli reach very different numbers of Kenyon cells, and the profile is
-conserved: relative fan-out of the $\FanCommon$ shared glomeruli in all seven
-hemispheres, ordered by the mean; the dashed line is even fan-out.
+(b) Glomeruli reach very different numbers of Kenyon cells, and the profile is similar across the sampled hemispheres: relative fan-out of the $\FanCommon$ shared glomeruli in all seven, ordered by the mean; the dashed line is even fan-out.
 (c) Inputs per Kenyon cell, against the six of the 2017 construction.}
 \label{fig:concept}
 \end{figure*}
@@ -223,6 +214,7 @@ statistics, not its odour-specific pairing. Each connectome is scored against
 $\ConnB$ nulls and one draw of each control per trial.
 
 \subsection{Approach 2: odour analysis}
+\label{sec:odours}
 
 Responses are the DoOR 2.0 consensus matrix \cite{munch2016} (commit
 \texttt{\DoorCommit}). Coverage is uneven: $35$ glomeruli are measured for $51$
@@ -500,37 +492,33 @@ task & null & conn. & fan-out even & inputs even & both & six \\
 \end{tabular}
 \end{table}
 
-The fly hash has also been proposed as a novelty detector, a Bloom filter whose
-Kenyon-cell output synapses are depressed by stored items \cite{dasgupta2018},
-and as a nearest-neighbour classifier with one such filter per class
-\cite{ram2022}. With the same matrices (MaleCNS right, graded filter,
-\TaskTrials{} trials, difference to each trial's null mean, $95\%$ interval),
+The fly hash has also been proposed as a novelty detector, a Bloom filter whose Kenyon-cell output synapses are depressed by stored items \cite{dasgupta2018}, and as a nearest-neighbour classifier with one such filter per class \cite{ram2022}. We use a static graded surrogate of that filter, not a reproduction of its dynamics: after storing $n$ items, cell $j$'s output weight is $w_j = 1 - c_j/n$ with $c_j$ the number of stored items that activated it, and a query's novelty is the mean $w_j$ over its $k$ active cells (the binary filter saturates at these sizes); the classifier predicts the class whose filter finds the query least novel. This analysis is exploratory: MaleCNS right, \TaskTrials{} trials, $10$ null matrices reused across trials, unadjusted $95\%$ intervals of the difference to each trial's null mean. With these settings,
 the connectome differs from its null by \TaskNovConn{} in MNIST novelty AUC
-(null \TaskNovNull; digits 0--4 stored, 5--9 novel), \TaskKnnConn{} in ten-class
-accuracy (null \TaskKnnNull) and \TaskOdNovConn{} in odour novelty AUC (null
-\TaskOdNovNull). Even fan-out gives \TaskNovOut, \TaskKnnOut{} and \TaskOdNovOut;
-even inputs \TaskNovIn, \TaskKnnIn{} and \TaskOdNovIn{} (Table~\ref{tab:tasks}). The pairing again gives no
-advantage; fan-out balance helps classification but not novelty detection.
+(null \TaskNovNull; digits 0--4 stored, held-out 0--4 familiar, 5--9 novel), \TaskKnnConn{} in ten-class accuracy (null \TaskKnnNull) and \TaskOdNovConn{} in odour novelty AUC (null \TaskOdNovNull; mixtures of half of the odorants stored, mixtures of the other half novel). Even fan-out gives \TaskNovOut, \TaskKnnOut{} and \TaskOdNovOut;
+even inputs \TaskNovIn, \TaskKnnIn{} and \TaskOdNovIn{} (Table~\ref{tab:tasks}). The pairing again gives no advantage. Even fan-out raises classification accuracy, has no resolvable effect on MNIST novelty, and lowers odour novelty in this experiment.
 
-\subsection{The skew is conserved across animals}
+\subsection{The fan-out profile is similar across the sampled animals}
 
-If the skew in fan-out were reconstruction noise, it would differ between
-connectomes. It does not (Fig.~\ref{fig:concept}b). Over the $\FanCommon$
-glomeruli all hemispheres share, relative fan-out correlates between animals at
-Spearman $\rho=\FanBetweenMin$ to $\FanBetweenMax$ (median $\FanBetweenMed$) and
-between the two hemispheres of one animal at $\FanWithinMin$ to $\FanWithinMax$;
-it spans a factor of about $\FanSpread$, from \FanTop{} at the top to \FanBottom{}
-at the bottom. Synaptic weights do not offset it: mean synapses per connection
-correlate positively with fan-out in \FanWeightPos{} of \FanN{} hemispheres
-($\rho$ from $\FanWeightMin$ to $\FanWeightMax$, $p<0.05$ in \FanWeightSig), so
-total synaptic input per glomerulus is even more uneven than fan-out. In DoOR,
-glomeruli with larger fan-out respond to more odorants and more variably
-(response breadth $\rho=\FanBreadthMin$ to $\FanBreadthMax$, response SD
-$\FanSdMin$ to $\FanSdMax$ across hemispheres, $p<0.05$ in \FanSdSig{} for SD).
-These correlations share one odour dataset and a conserved fan-out profile, so
-they are one weak association, not seven independent ones. The top of the
-ranking includes glomeruli described as food-responsive and overconvergent in
-\cite{zheng2022}.
+Across the four sampled connectomes the fan-out profile is similar
+(Fig.~\ref{fig:concept}b): over the $\FanCommon$ glomeruli all hemispheres
+share, relative fan-out correlates between animals at Spearman
+$\rho=\FanBetweenMin$ to $\FanBetweenMax$ (median $\FanBetweenMed$) and between the
+two hemispheres of one animal at $\FanWithinMin$ to $\FanWithinMax$; it spans a
+factor of about $\FanSpread$, from \FanTop{} at the top to \FanBottom{} at the
+bottom. This is a descriptive comparison of four animals, not a population
+estimate, and shared cell-type definitions, nomenclature mapping or systematic
+reconstruction biases could contribute to the similarity. That some glomeruli
+are over-represented was reported by \cite{caron2013} and, as structured
+sampling of food-related types, by \cite{zheng2022}; new here is the comparison
+across reconstructions and its retrieval cost in the model. Synaptic weights do
+not offset the skew: mean synapses per connection correlate positively with
+fan-out in \FanWeightPos{} of \FanN{} hemispheres ($\rho$ from $\FanWeightMin$ to
+$\FanWeightMax$, nominal $p<0.05$ in \FanWeightSig, unadjusted), so in those hemispheres total synaptic input per glomerulus is even more uneven than fan-out. Its relation to odour
+tuning in DoOR is weak: over measured odorants, fan-out correlates with
+response breadth at $\rho=\FanBreadthMin$ to $\FanBreadthMax$ (smallest
+$p=\FanBreadthPmin$) and with response SD at $\FanSdMin$ to $\FanSdMax$ (nominal
+$p<0.05$ in \FanSdSig). These share one odour panel and similar fan-out
+profiles, so they are one weak, uncorrected association, not seven tests.
 
 \section{Discussion}
 
@@ -550,12 +538,7 @@ baseline the fly hash's advantage is per active cell: Gaussian projections given
 retrieve better on every dataset and input dimension we tested. Against one-bit
 codes, and at the circuit's own scale, the comparison is closer. The random construction of 2017 already has nearly even fan-out, so the
 fan-out result is not an improvement over the standard fly hash; it locates
-where the circuit departs from it. That departure is conserved across animals
-and sexes and reinforced by synaptic weights, so it is unlikely to be
-incidental. A circuit that gives more Kenyon cells, and stronger synapses, to
-broadly tuned and food-related channels pays for it in generic similarity
-search; what it gains in return, for instance in innate or learned valence of
-food odours, is the question these results raise.
+where the circuit departs from it. That departure looks similar in all four sampled animals, and synaptic weights do not offset it. A circuit that gives more Kenyon cells, and in most of the sampled hemispheres stronger synapses, to the same glomeruli pays for it in generic similarity search under these protocols; what it gains in return, for instance in innate or learned valence of the food-related glomeruli near the top of the ranking \cite{zheng2022}, is a question these results raise but do not answer.
 
 \section{Limitations}
 
@@ -570,16 +553,19 @@ winner-take-all.
 
 \section{Conclusion}
 
-The random fly hash survives the test against real brains. In a documented
-reimplementation, sparse winner-take-all codes outperform equally many real
-Gaussian projections at short hash lengths, and across four connectomes no
-measured wiring retrieves better than degree-preserving random wiring; the
-circuit's conserved skew in glomerular fan-out makes it slightly worse. Random
-sparse wiring with even fan-out is therefore the right design, and connectome
-data are not needed to build a good fly hash. Its advantage is per active unit,
-not per operation: where arithmetic is cheap, dense Gaussian projections
-retrieve better, while where active units are the scarce resource, as in
-sparse or neuromorphic hardware, the fly hash is the better choice.
+In a documented reimplementation, sparse winner-take-all codes outperform
+equally many real Gaussian projections at short hash lengths. Across four
+connectomes, measured wiring gives no consistent retrieval advantage over
+degree-preserving random wiring, and is slightly worse on average under the tested inputs. Separately, in the model, the circuit's skewed glomerular fan-out, which is similar across the sampled animals, costs retrieval relative to even fan-out at equal connection count. A fly hash
+therefore needs no connectome data, and in the tested generic-retrieval model
+random sparse wiring with even fan-out does at least as well as the measured
+wiring. The algorithm's advantage over real-valued LSH is per active unit, not
+per operation: where arithmetic is cheap, dense Gaussian projections retrieve
+better; where active units are the binding cost, as may hold for sparse or
+neuromorphic hardware, the fly hash could be the better choice, which direct
+hardware measurement would have to show. The pre-registration that fixed the
+null ensembles of Section~\ref{sec:odours} also contained three algorithmic and
+theory experiments outside this comparison; none met its registered criterion, and \texttt{experiments/OUTCOMES\_2026-09-28.md} reports them.
 Code, data checksums, results and a supplement are at
 \url{https://github.com/ssenge/FlyHash-Connectome}.
 
@@ -660,7 +646,7 @@ pp. 175--182, 2017.
 \emph{Drosophila} mushroom body provides insights into function,''
 \emph{eLife}, vol. 9, e62576, 2020.
 
-\bibitem{ram2022} P. Ram and K. Sinha, ``Federated nearest neighbor classification with a colony of fruit-flies,'' in \emph{Proc. AAAI}, 2022.
+\bibitem{ram2022} P. Ram and K. Sinha, ``Federated nearest neighbor classification with a colony of fruit-flies,'' in \emph{Proc. AAAI}, 2022, pp. 8036--8044.
 
 \bibitem{litwinkumar2017} A. Litwin-Kumar, K. D. Harris, R. Axel, H. Sompolinsky, and L. F. Abbott, ``Optimal degrees of synaptic connectivity,'' \emph{Neuron}, vol. 93, no. 5, pp. 1153--1164, 2017.
 
