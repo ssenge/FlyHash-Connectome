@@ -69,8 +69,8 @@ Robustness: 26 one-factor variations, see [results/SUPPLEMENT.md](results/SUPPLE
 <!-- results:end -->
 
 Every number in the generated Results block above, in the figure and in the
-paper is regenerated from `results/*.json` by `python -m flypath report`;
-the summary bullets at the top are written by hand from the same files. The full robustness grid,
+paper is regenerated from `results/*.json` by `python -m flypath report`.
+The summary bullets at the top are written by hand from the same files. The full robustness grid,
 power table, coverage study and curveball mixing diagnostics are in
 [results/SUPPLEMENT.md](results/SUPPLEMENT.md).
 
