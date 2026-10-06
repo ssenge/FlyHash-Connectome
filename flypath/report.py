@@ -256,6 +256,8 @@ def latex(pr, ar, cv, rb, co) -> str:
                 mac.append(_mac(f"Task{name}{cn}", f"{d['mean']:+.3f} [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}]"))
             mac.append(_mac(f"Task{name}Null", f"{r['mean']['null']:.3f}"))
         mac.append(_mac("TaskTrials", tk["trials"]))
+        mac.append(_mac("TaskKMnist", tk["tasks"]["mnist_novelty"]["k"]))
+        mac.append(_mac("TaskKOdour", tk["tasks"]["odour_novelty"]["k"]))
         rows = []
         for task, name in (("mnist_novelty", "Novelty, MNIST (AUC)"), ("mnist_flynn", "FlyNN-style, MNIST (accuracy)"),
                            ("odour_novelty", "Novelty, odours (AUC)")):
